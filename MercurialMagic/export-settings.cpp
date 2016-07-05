@@ -19,6 +19,9 @@ ExportSettings::ExportSettings() {
   gamepak.setText("Game Pak (cartridge folder)");
   gamepak.onActivate([&] { program->exportMethod = Program::ExportMethod::GamePak; });
 
+  manifest.setText("Export Manifest");
+  manifest.onToggle([&] { program->exportManifest = manifest.checked(); });
+
   sd2snes.setText("SD2SNES");
   sd2snes.onActivate([&] { program->exportMethod = Program::ExportMethod::SD2SNES; });
 

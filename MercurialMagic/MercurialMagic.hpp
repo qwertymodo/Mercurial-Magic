@@ -27,6 +27,7 @@ struct Program {
   string packPath;
   string romPath;
   ExportMethod exportMethod;
+  bool exportManifest;
 
   Decode::ZIP pack;
   vector<uint8_t> patchContents;
@@ -38,10 +39,12 @@ struct ExportSettings : Window {
   ExportSettings();
 
   HorizontalLayout layout{this};
-    VerticalLayout selectLayout{&layout, Size{160, ~0}};
+    VerticalLayout selectLayout{&layout, Size{~0, ~0}};
       Label selectLabel{&selectLayout, Size{~0, 0}};
-      RadioLabel gamepak{&selectLayout, Size{~0, 0}};
-      RadioLabel sd2snes{&selectLayout, Size{~0, 0}};
+      HorizontalLayout gamepakLayout{&selectLayout, Size{~0, 0}};
+        RadioLabel gamepak{&gamepakLayout, Size{160, 0}};
+        CheckLabel manifest{&gamepakLayout, Size{160, 0}};
+      RadioLabel sd2snes{&selectLayout, Size{160, 0}};
       Group exportGroup{&gamepak, &sd2snes};
     VerticalLayout buttonLayout{&layout, Size{80, ~0}};
       Button exportButton{&buttonLayout, Size{~0, 0}};

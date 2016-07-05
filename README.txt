@@ -1,12 +1,15 @@
-Mercurial Magic v00r02
+Mercurial Magic v00r03
 Author: hex_usr
 Dependencies:
   nall (by byuu)
   hiro (by byuu)
+  icarus (by byuu)
+  daedalus (based on icarus by byuu, modified by hex_usr)
 License: ISC
 
 Mercurial Magic is an MSU-1 package manager that can export MSU-1 games to the
 following environments:
+higan v095
 higan v096-v099 and up
 SD2SNES
 
@@ -45,11 +48,14 @@ Export formats
 There are 2 major export formats to fit different needs.
 
 Game Pak:
-  The cartridge folder format for higan versions v096-v099 and up. All files
-  except for patch.bps are exported exactly as they are. If patch.bps is
-  present, the patch will be applied to a ROM, then the patched ROM will become
-  "program.rom" in the Game Pak. No manifest is exported, because higan v096 to
-  v099 rely on icarus to generate manifests.
+  The cartridge folder format for higan versions v096-v099 and up, with an
+  optional manifest for higan v095. All files except for patch.bps are exported
+  exactly as they are. If patch.bps is present, the patch will be applied to a
+  ROM, then the patched ROM will become "program.rom" in the Game Pak.
+  The generated manifest, if any, is a hybrid manifest for higan versions v095
+  and v096-v099 and up.
+  Exporting manifests requires icarus to be in the same directory as Mercurial
+  Magic. To generate a manifest for higan v095, daedalus is also required.
 
 SD2SNES
   A format in which all files share the name of the game's title, as required

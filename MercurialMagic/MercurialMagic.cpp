@@ -57,8 +57,7 @@ auto Program::validate() -> bool {
 
   valid = false;
   for(auto& file : pack.file) {
-    if(file.name == "program.rom") { valid = true; break; }
-    if(file.name == "patch.bps") { valid = true; break; }
+    if(file.name == "program.rom" || file.name == "patch.bps") { valid = true; break; }
   }
   if(!valid) return false;
 
@@ -77,32 +76,49 @@ auto Program::fetch(bpspatch& patch) -> bool {
 
 auto Program::exportPack() -> void {
   vector<uint8_t> contents;
+  uint patchResult;
 
   switch(exportMethod) {
 
   case ExportMethod::GamePak: {
-    string gamepak = {dirname(packPath), prefixname(packPath), ".sfc", "/"};
+    string gamepak = {Location::dir(packPath), Location::prefix(packPath), ".sfc", "/"};
     directory::create(gamepak);
 
-    if(usesPatch) patch.target({gamepak, "program.rom"});
+    if(usesPatch) {
+      patch.target({gamepak, "program.rom"});
+      patchResult = patch.apply();
+    }
     for(auto& file : pack.file) {
-      if(suffixname(file.name) != ".rom" && suffixname(file.name) != ".pcm") continue;
+      if(Location::suffix(file.name) != ".rom" && Location::suffix(file.name) != ".pcm") continue;
       file::write({gamepak, file.name}, pack.extract(file));
+    }
+
+    if(exportManifest) {
+      if(auto manifest = execute("icarus", "--manifest", gamepak)) {
+        string legacyOutput = "";
+        if(auto legacyManifest = execute("daedalus", "--manifest", gamepak)) {
+          legacyOutput = {legacyManifest.output.split("\n\n")[0], "\n\n"};
+        }
+        file::write({gamepak, "manifest.bml"}, {legacyOutput, manifest.output});
+      }
     }
     break;
   }
 
   case ExportMethod::SD2SNES: {
-    string sd2snes = {dirname(packPath), "SD2SNES/"};
+    string sd2snes = {Location::dir(packPath), "SD2SNES/"};
     directory::create(sd2snes);
 
-    if(usesPatch) patch.target({sd2snes, prefixname(packPath), ".sfc"});
+    if(usesPatch) {
+      patch.target({sd2snes, Location::prefix(packPath), ".sfc"});
+      patchResult = patch.apply();
+    }
     uint trackID;
     for(auto& file : pack.file) {
       if(file.name == "msu1.rom") {
-        file::write({sd2snes, prefixname(packPath), ".msu"}, pack.extract(file));
-      } else if(suffixname(file.name) == ".pcm") {
-        if(file.name.beginsWith("track-")) {  //Track name is /track-[0-9]\.pcm/
+        file::write({sd2snes, Location::prefix(packPath), ".msu"}, pack.extract(file));
+      } else if(Location::suffix(file.name) == ".pcm") {
+        if(file.name.beginsWith("track-")) {  //Track name is /track-([0-9]+)\.pcm/, where $1 is the ID
           trackID = string{file.name}.trimLeft("track-").trimRight(".pcm").natural();
         } else {  //Track name is /([0-9]+)([^0-9].*)\.pcm/, where $1 is the ID and $2 is the name
           uint length = 0;
@@ -111,7 +127,7 @@ auto Program::exportPack() -> void {
           }
           trackID = slice(file.name, 0, length).natural();
         }
-        file::write({sd2snes, prefixname(packPath), "-", trackID, ".pcm"}, pack.extract(file));
+        file::write({sd2snes, Location::prefix(packPath), "-", trackID, ".pcm"}, pack.extract(file));
       }
     }
 
@@ -131,7 +147,7 @@ auto Program::exportPack() -> void {
       "*.data.rom",
     };
 
-    file program({sd2snes, prefixname(packPath), ".sfc"}, file::mode::write);
+    file program({sd2snes, Location::prefix(packPath), ".sfc"}, file::mode::write);
     for(auto& romName : roms) {
       if(auto file = fetchFile(romName)) {
         program.write(pack.extract(file()).data(), file().size);
@@ -145,8 +161,7 @@ auto Program::exportPack() -> void {
   }
 
   if(usesPatch) {
-    uint result = patch.apply();
-    switch(result) {
+    switch(patchResult) {
     case bpspatch::result::unknown:
     case bpspatch::result::target_too_small:
     case bpspatch::result::target_checksum_invalid:

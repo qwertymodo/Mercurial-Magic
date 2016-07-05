@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleIdentifier</key>
+  <string>org.byuu.icarus</string>
+  <key>CFBundleDisplayName</key>
+  <string>daedalus</string>
+  <key>CFBundleExecutable</key>
+  <string>daedalus</string>
+  <!--
+  <key>CFBundleIconFile</key>
+  <string>daedalus.icns</string>
+  -->
+  <key>NSHighResolutionCapable</key>
+  <false/>
+  <key>NSSupportsAutomaticGraphicsSwitching</key>
+  <true/>
+</dict>
+</plist>
