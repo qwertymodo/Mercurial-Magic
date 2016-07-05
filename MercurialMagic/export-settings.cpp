@@ -8,10 +8,11 @@ ExportSettings::ExportSettings() {
   layout.setMargin(5);
 
   setTitle("Mercurial Magic");
-  setSize({250, layout.minimumSize().height() + 16});  //compensate for Label which is not counted
+  //compensate for Label which is not counted
+  setSize({layout.minimumSize().width(), layout.minimumSize().height() + 16});
   setResizable(false);
 
-  exportLabel.setText("Export Method:");
+  selectLabel.setText("Export as...");
 
   ((RadioLabel*)&exportGroup.objects()[program->exportMethod])->setChecked();
 

@@ -22,6 +22,8 @@ Program::Program(string_vector args) {
 
   pack.open(packPath);
 
+  if(!validate()) error("This is not a valid MSU-1 pack.");
+
   usesPatch = fetch(patch);
 
   if(usesPatch) {
@@ -36,7 +38,7 @@ Program::Program(string_vector args) {
     }
   }
 
-  if(!romPath) quit();
+  if(usesPatch && !romPath) quit();
   if(usesPatch) patch.source(romPath);
 
   exportMethod = ExportMethod::GamePak;
@@ -44,28 +46,33 @@ Program::Program(string_vector args) {
   exportSettings->setVisible(true);
 }
 
-auto Program::information(const string& text) -> void {
-  MessageDialog().setTitle("Mercurial Magic").setText(text).information();
-}
+auto Program::validate() -> bool {
+  bool valid;
 
-auto Program::warning(const string& text) -> void {
-  MessageDialog().setTitle("Mercurial Magic").setText(text).warning();
-}
+  valid = false;
+  for(auto& file : pack.file) {
+    if(file.name == "msu1.rom") { valid = true; break; }
+  }
+  if(!valid) return false;
 
-auto Program::error(const string& text) -> void {
-  MessageDialog().setTitle("Mercurial Magic").setText(text).error();
-  quit();
+  valid = false;
+  for(auto& file : pack.file) {
+    if(file.name == "program.rom") { valid = true; break; }
+    if(file.name == "patch.bps") { valid = true; break; }
+  }
+  if(!valid) return false;
+
+  return true;
 }
 
 auto Program::fetch(bpspatch& patch) -> bool {
-  bool valid = false;
   for(auto& file : pack.file) {
     if(file.name != "patch.bps") continue;
-    valid = true;
     patchContents = pack.extract(file);
     patch.modify(patchContents.data(), patchContents.size());
+    return true;
   }
-  return valid;
+  return false;
 }
 
 auto Program::exportPack() -> void {
@@ -74,14 +81,13 @@ auto Program::exportPack() -> void {
   switch(exportMethod) {
 
   case ExportMethod::GamePak: {
-    string gamepak = {dirname(packPath), prefixname(packPath), suffixname(romPath), "/"};
+    string gamepak = {dirname(packPath), prefixname(packPath), ".sfc", "/"};
     directory::create(gamepak);
 
     if(usesPatch) patch.target({gamepak, "program.rom"});
     for(auto& file : pack.file) {
       if(suffixname(file.name) != ".rom" && suffixname(file.name) != ".pcm") continue;
-      contents = pack.extract(file);
-      file::write({gamepak, file.name}, contents);
+      file::write({gamepak, file.name}, pack.extract(file));
     }
     break;
   }
@@ -90,12 +96,11 @@ auto Program::exportPack() -> void {
     string sd2snes = {dirname(packPath), "SD2SNES/"};
     directory::create(sd2snes);
 
-    if(usesPatch) patch.target({sd2snes, prefixname(packPath), suffixname(romPath)});
+    if(usesPatch) patch.target({sd2snes, prefixname(packPath), ".sfc"});
     uint trackID;
     for(auto& file : pack.file) {
       if(file.name == "msu1.rom") {
-        contents = pack.extract(file);
-        file::write({sd2snes, prefixname(packPath), ".msu"}, contents);
+        file::write({sd2snes, prefixname(packPath), ".msu"}, pack.extract(file));
       } else if(suffixname(file.name) == ".pcm") {
         if(file.name.beginsWith("track-")) {  //Track name is /track-[0-9]\.pcm/
           trackID = string{file.name}.trimLeft("track-").trimRight(".pcm").natural();
@@ -106,10 +111,34 @@ auto Program::exportPack() -> void {
           }
           trackID = slice(file.name, 0, length).natural();
         }
-        contents = pack.extract(file);
-        file::write({sd2snes, prefixname(packPath), "-", trackID, ".pcm"}, contents);
+        file::write({sd2snes, prefixname(packPath), "-", trackID, ".pcm"}, pack.extract(file));
       }
     }
+
+    auto fetchFile = [&](string_view name) -> maybe<Decode::ZIP::File> {
+      for(auto& file : pack.file) {
+        if(file.name.match(name)) return file;
+      }
+      return nothing;
+    };
+
+    static string_vector roms = {
+      "program.rom",
+      "data.rom",
+      "slot-*.rom",
+      "*.boot.rom",
+      "*.program.rom",
+      "*.data.rom",
+    };
+
+    file program({sd2snes, prefixname(packPath), ".sfc"}, file::mode::write);
+    for(auto& romName : roms) {
+      if(auto file = fetchFile(romName)) {
+        program.write(pack.extract(file()).data(), file().size);
+      }
+    }
+    program.close();
+
     break;
   }
 
@@ -147,6 +176,19 @@ auto Program::exportPack() -> void {
   }
 
   information("MSU-1 pack exported!");
+}
+
+auto Program::information(const string& text) -> void {
+  MessageDialog().setTitle("Mercurial Magic").setText(text).information();
+}
+
+auto Program::warning(const string& text) -> void {
+  MessageDialog().setTitle("Mercurial Magic").setText(text).warning();
+}
+
+auto Program::error(const string& text) -> void {
+  MessageDialog().setTitle("Mercurial Magic").setText(text).error();
+  quit();
 }
 
 auto Program::main() -> void {
