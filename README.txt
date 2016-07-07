@@ -1,4 +1,4 @@
-Mercurial Magic v00r03
+Mercurial Magic v00r04
 Author: hex_usr
 Dependencies:
   nall (by byuu)
@@ -19,8 +19,14 @@ which is why Mercurial Magic exists.
 ===============================================================================
 MSU-1 Pack specification
 
-MSU-1 packages are ZIP archives with the extension .msu1. They can follow 2
-separate structures depending on the legality of the original game:
+MSU-1 packages are ZIP archives with the extension .msu1. These ZIP archives
+are only allowed to use 2 compression methods: Store (0x00) and Deflate (0x08).
+This effectively means that no MSU-1 package can exceed 4GB in size, and no
+individual file's uncompressed size can exceed 4GB either. The restriction is
+enforced by nall.
+
+They can follow 2 separate structures depending on the legality of the original
+game:
 
 MSU-1 Pack for Commercial Game.msu1
   patch.bps         Patch
@@ -61,4 +67,7 @@ SD2SNES
   A format in which all files share the name of the game's title, as required
   by SD2SNES. All files except for patch.bps are renamed during export. If
   patch.bps is present, the patch will be applied to a ROM, then the patched
-  ROM will become "<Game Name>.sfc" in the package. No manifest is exported.
+  ROM will become "<Game Name>.sfc" in the package. If this is a homebrew, and
+  more than 1 ROM (such as SPC7110 data or coprocessor firmware) are bundled
+  directly, they will be merged together into a single .sfc file. No manifest
+  is exported.

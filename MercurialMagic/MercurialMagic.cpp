@@ -6,6 +6,9 @@ Program::Program(string_vector args) {
   program = this;
   Application::onMain({&Program::main, this});
 
+  exporting = false;
+  zipIndex = 0;
+
   args.takeLeft();  //ignore program location in argument parsing
 
   if(args) {
@@ -64,79 +67,49 @@ auto Program::validate() -> bool {
   return true;
 }
 
-auto Program::fetch(bpspatch& patch) -> bool {
+auto Program::fetch(string_view name) -> maybe<Decode::ZIP::File> {
   for(auto& file : pack.file) {
-    if(file.name != "patch.bps") continue;
-    patchContents = pack.extract(file);
+    if(file.name.match(name)) return file;
+  }
+  return nothing;
+}
+
+auto Program::fetch(bpspatch& patch) -> bool {
+  if(auto file = fetch("patch.bps")) {
+    patchContents = pack.extract(file());
     patch.modify(patchContents.data(), patchContents.size());
     return true;
   }
   return false;
 }
 
-auto Program::exportPack() -> void {
-  vector<uint8_t> contents;
+auto Program::beginExport() -> void {
   uint patchResult;
 
   switch(exportMethod) {
 
   case ExportMethod::GamePak: {
-    string gamepak = {Location::dir(packPath), Location::prefix(packPath), ".sfc", "/"};
-    directory::create(gamepak);
+    destination = {Location::dir(packPath), Location::prefix(packPath), ".sfc", "/"};
+
+    directory::create(destination);
 
     if(usesPatch) {
-      patch.target({gamepak, "program.rom"});
+      patch.target({destination, "program.rom"});
       patchResult = patch.apply();
     }
-    for(auto& file : pack.file) {
-      if(Location::suffix(file.name) != ".rom" && Location::suffix(file.name) != ".pcm") continue;
-      file::write({gamepak, file.name}, pack.extract(file));
-    }
 
-    if(exportManifest) {
-      if(auto manifest = execute("icarus", "--manifest", gamepak)) {
-        string legacyOutput = "";
-        if(auto legacyManifest = execute("daedalus", "--manifest", gamepak)) {
-          legacyOutput = {legacyManifest.output.split("\n\n")[0], "\n\n"};
-        }
-        file::write({gamepak, "manifest.bml"}, {legacyOutput, manifest.output});
-      }
-    }
     break;
   }
 
   case ExportMethod::SD2SNES: {
-    string sd2snes = {Location::dir(packPath), "SD2SNES/"};
-    directory::create(sd2snes);
+    destination = {Location::dir(packPath), "SD2SNES/"};
+
+    directory::create(destination);
 
     if(usesPatch) {
-      patch.target({sd2snes, Location::prefix(packPath), ".sfc"});
+      patch.target({destination, Location::prefix(packPath), ".sfc"});
       patchResult = patch.apply();
     }
-    uint trackID;
-    for(auto& file : pack.file) {
-      if(file.name == "msu1.rom") {
-        file::write({sd2snes, Location::prefix(packPath), ".msu"}, pack.extract(file));
-      } else if(Location::suffix(file.name) == ".pcm") {
-        if(file.name.beginsWith("track-")) {  //Track name is /track-([0-9]+)\.pcm/, where $1 is the ID
-          trackID = string{file.name}.trimLeft("track-").trimRight(".pcm").natural();
-        } else {  //Track name is /([0-9]+)([^0-9].*)\.pcm/, where $1 is the ID and $2 is the name
-          uint length = 0;
-          for(uint pos : range(file.name.size())) {
-            if(file.name[pos] < '0' || file.name[pos] > '9') { length = pos; break; }
-          }
-          trackID = slice(file.name, 0, length).natural();
-        }
-        file::write({sd2snes, Location::prefix(packPath), "-", trackID, ".pcm"}, pack.extract(file));
-      }
-    }
-
-    auto fetchFile = [&](string_view name) -> maybe<Decode::ZIP::File> {
-      for(auto& file : pack.file) {
-        if(file.name.match(name)) return file;
-      }
-      return nothing;
-    };
 
     static string_vector roms = {
       "program.rom",
@@ -147,13 +120,13 @@ auto Program::exportPack() -> void {
       "*.data.rom",
     };
 
-    file program({sd2snes, Location::prefix(packPath), ".sfc"}, file::mode::write);
-    for(auto& romName : roms) {
-      if(auto file = fetchFile(romName)) {
-        program.write(pack.extract(file()).data(), file().size);
+    file rom({destination, Location::prefix(packPath), ".sfc"}, file::mode::write);
+    for(string& romName : roms) {
+      if(auto file = fetch(romName)) {
+        rom.write(pack.extract(file()).data(), file().size);
       }
     }
-    program.close();
+    rom.close();
 
     break;
   }
@@ -163,13 +136,13 @@ auto Program::exportPack() -> void {
   if(usesPatch) {
     switch(patchResult) {
     case bpspatch::result::unknown:
-    case bpspatch::result::target_too_small:
-    case bpspatch::result::target_checksum_invalid:
       error("There was an unspecified problem in exporting the MSU-1 pack.");
       break;
     case bpspatch::result::patch_invalid_header:
       error("The BPS patch's header is invalid!");
       break;
+    case bpspatch::result::target_too_small:
+    case bpspatch::result::target_checksum_invalid:
     case bpspatch::result::patch_too_small:
     case bpspatch::result::patch_checksum_invalid:
       error("The BPS patch is corrupt!");
@@ -190,7 +163,69 @@ auto Program::exportPack() -> void {
     }
   }
 
+  exporting = true;
+}
+
+auto Program::iterateExport() -> void {
+  auto& file = pack.file[zipIndex++];
+
+  switch(exportMethod) {
+
+  case ExportMethod::GamePak: {
+    if(Location::suffix(file.name) != ".rom" && Location::suffix(file.name) != ".pcm") return;
+    file::write({destination, file.name}, pack.extract(file));
+
+    break;
+  }
+
+  case ExportMethod::SD2SNES: {
+    if(file.name == "msu1.rom") {
+      file::write({destination, Location::prefix(packPath), ".msu"}, pack.extract(file));
+    } else if(Location::suffix(file.name) == ".pcm") {
+      uint trackID;
+      if(file.name.beginsWith("track-")) {  //Track name is /track-([0-9]+)\.pcm/, where $1 is the ID
+        trackID = string{file.name}.trimLeft("track-").trimRight(".pcm").natural();
+      } else {  //Track name is /([0-9]+)([^0-9].*)\.pcm/, where $1 is the ID and $2 is the name
+        uint length = 0;
+        for(uint pos : range(file.name.size())) {
+          if(file.name[pos] < '0' || file.name[pos] > '9') { length = pos; break; }
+        }
+        trackID = slice(file.name, 0, length).natural();
+      }
+      file::write({destination, Location::prefix(packPath), "-", trackID, ".pcm"}, pack.extract(file));
+    }
+
+    break;
+  }
+
+  }
+
+  exportSettings->setProgress(zipIndex, pack.file.size());
+}
+
+auto Program::finishExport() -> void {
+  exporting = false;
+
+  if(exportManifest) {
+    switch(exportMethod) {
+
+    case ExportMethod::GamePak: {
+      if(auto manifest = execute("icarus", "--manifest", destination)) {
+        string legacyOutput = "";
+        if(auto legacyManifest = execute("daedalus", "--manifest", destination)) {
+          legacyOutput = {legacyManifest.output.split("\n\n")[0], "\n\n"};
+        }
+        file::write({destination, "manifest.bml"}, {legacyOutput, manifest.output});
+      }
+
+      break;
+    }
+
+    }
+  }
+
   information("MSU-1 pack exported!");
+  quit();
 }
 
 auto Program::information(const string& text) -> void {
@@ -208,6 +243,10 @@ auto Program::error(const string& text) -> void {
 
 auto Program::main() -> void {
   usleep(2000);
+  if(exporting) {
+    iterateExport();
+    if(zipIndex >= pack.file.size()) finishExport();
+  }
 }
 
 auto Program::quit() -> void {

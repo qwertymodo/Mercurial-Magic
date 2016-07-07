@@ -26,15 +26,15 @@ ExportSettings::ExportSettings() {
   sd2snes.onActivate([&] { program->exportMethod = Program::ExportMethod::SD2SNES; });
 
   exportButton.setText("Export");
-  exportButton.onActivate([&] {
-    program->exportPack();
-    program->quit();
+  exportButton.onActivate([&] { program->beginExport();
   });
 
   cancelButton.setText("Cancel");
-  cancelButton.onActivate([&] {
-    program->quit();
-  });
+  cancelButton.onActivate([&] { program->quit(); });
 
   onClose([&] { program->quit(); });
+}
+
+auto ExportSettings::setProgress(uint files, uint fileCount) -> void {
+  progressBar.setPosition(files * 100 / fileCount);
 }
