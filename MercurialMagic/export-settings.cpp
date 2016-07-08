@@ -8,8 +8,7 @@ ExportSettings::ExportSettings() {
   layout.setMargin(5);
 
   setTitle("Mercurial Magic");
-  //compensate for Label which is not counted
-  setSize({layout.minimumSize().width(), layout.minimumSize().height() + 16});
+  setSize(layout.minimumSize());
   setResizable(false);
 
   selectLabel.setText("Export as...");
