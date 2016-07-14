@@ -25,13 +25,22 @@ ExportSettings::ExportSettings() {
   sd2snes.onActivate([&] { program->exportMethod = Program::ExportMethod::SD2SNES; });
 
   exportButton.setText("Export");
-  exportButton.onActivate([&] { program->beginExport();
+  exportButton.onActivate([&] {
+    program->beginExport();
+    exportButton.setEnabled(false);
+    gamepak.setEnabled(false);
+    manifest.setEnabled(false);
+    sd2snes.setEnabled(false);
   });
 
   cancelButton.setText("Cancel");
   cancelButton.onActivate([&] { program->quit(); });
 
   onClose([&] { program->quit(); });
+}
+
+auto ExportSettings::setFilename(const string& filename) -> void {
+  filenameLabel.setText({"Exporting ", filename, "..."});
 }
 
 auto ExportSettings::setProgress(uint files, uint fileCount) -> void {

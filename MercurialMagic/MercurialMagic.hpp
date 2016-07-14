@@ -38,13 +38,13 @@ struct Program {
   bool usesPatch;
   bpspatch patch;
 
-  bool exporting;
   uint zipIndex;
   string destination;
 };
 
 struct ExportSettings : Window {
   ExportSettings();
+  auto setFilename(const string& file) -> void;
   auto setProgress(uint files, uint fileCount) -> void;
 
   HorizontalLayout layout{this};
@@ -55,6 +55,7 @@ struct ExportSettings : Window {
         CheckLabel manifest{&gamepakLayout, Size{160, 0}};
       RadioLabel sd2snes{&selectLayout, Size{160, 0}};
       Group exportGroup{&gamepak, &sd2snes};
+      Label filenameLabel{&selectLayout, Size{~0, 0}};
       ProgressBar progressBar{&selectLayout, Size{~0, 0}};
     VerticalLayout buttonLayout{&layout, Size{80, ~0}};
       Button exportButton{&buttonLayout, Size{~0, 0}};

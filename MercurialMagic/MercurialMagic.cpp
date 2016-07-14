@@ -6,7 +6,6 @@ Program::Program(string_vector args) {
   program = this;
   Application::onMain({&Program::main, this});
 
-  exporting = false;
   zipIndex = 0;
 
   args.takeLeft();  //ignore program location in argument parsing
@@ -163,11 +162,15 @@ auto Program::beginExport() -> void {
     }
   }
 
-  exporting = true;
+  thread::create([&](uintptr_t) -> void {
+    while(zipIndex < pack.file.size()) iterateExport();
+    finishExport();
+  });
 }
 
 auto Program::iterateExport() -> void {
   auto& file = pack.file[zipIndex++];
+  exportSettings->setFilename(file.name);
 
   switch(exportMethod) {
 
@@ -204,8 +207,6 @@ auto Program::iterateExport() -> void {
 }
 
 auto Program::finishExport() -> void {
-  exporting = false;
-
   if(exportManifest) {
     switch(exportMethod) {
 
@@ -243,10 +244,6 @@ auto Program::error(const string& text) -> void {
 
 auto Program::main() -> void {
   usleep(2000);
-  if(exporting) {
-    iterateExport();
-    if(zipIndex >= pack.file.size()) finishExport();
-  }
 }
 
 auto Program::quit() -> void {
