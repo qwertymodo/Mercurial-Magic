@@ -48,8 +48,8 @@ auto ScanDialog::show() -> void {
 auto ScanDialog::refresh() -> void {
   scanList.reset();
 
-  auto pathname = pathEdit.text().transform("\\", "/").trimRight("/").append("/");
-  if(!directory::exists(pathname)) return;
+  auto pathname = pathEdit.text().transform("\\", "/");
+  if((pathname || Path::root() == "/") && !pathname.endsWith("/")) pathname.append("/");
 
   settings["daedalus/Path"].setValue(pathname);
   pathEdit.setText(pathname);
@@ -74,7 +74,7 @@ auto ScanDialog::refresh() -> void {
 auto ScanDialog::activate() -> void {
   if(auto item = scanList.selected()) {
     string location{settings["daedalus/Path"].text(), item.text()};
-    if(directory::exists(location) && !gamePakType(Location::suffix(location))) {
+    if(!gamePakType(Location::suffix(location))) {
       pathEdit.setText(location);
       refresh();
     }

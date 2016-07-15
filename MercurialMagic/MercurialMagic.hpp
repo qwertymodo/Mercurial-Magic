@@ -5,7 +5,7 @@ using namespace hiro;
 
 #include <nall/beat/patch.hpp>
 
-struct Program {
+struct Program : Window {
   Program(string_vector args);
 
   enum ExportMethod : uint {
@@ -13,13 +13,17 @@ struct Program {
     SD2SNES,
   };
 
-  auto validate() -> bool;
+  auto validatePack() -> bool;
+  auto validateROMPatch() -> bool;
   auto fetch(string_view) -> maybe<Decode::ZIP::File>;
   auto fetch(bpspatch&) -> bool;
 
   auto beginExport() -> void;
   auto iterateExport() -> void;
   auto finishExport() -> void;
+
+  auto setProgress(uint files) -> void;
+  auto setEnabled(bool enabled = true) -> void;
 
   auto information(const string&) -> void;
   auto warning(const string&) -> void;
@@ -28,8 +32,27 @@ struct Program {
   auto main() -> void;
   auto quit() -> void;
 
-  string packPath;
-  string romPath;
+  VerticalLayout layout{this};
+    HorizontalLayout packLayout{&layout, Size{~0, 0}};
+      Label packLabel{&packLayout, Size{100, 0}};
+      LineEdit packPath{&packLayout, Size{400, 0}};
+      Button packChange{&packLayout, Size{80, 0}};
+    HorizontalLayout romLayout{&layout, Size{~0, 0}};
+      Label romLabel{&romLayout, Size{100, 0}};
+      LineEdit romPath{&romLayout, Size{400, 0}};
+      Button romChange{&romLayout, Size{80, 0}};
+    Label selectLabel{&layout, Size{~0, 0}};
+    HorizontalLayout gamepakLayout{&layout, Size{~0, 0}};
+      RadioLabel gamepak{&gamepakLayout, Size{160, 0}};
+      CheckLabel manifest{&gamepakLayout, Size{160, 0}};
+    RadioLabel sd2snes{&layout, Size{160, 0}};
+    Group exportGroup{&gamepak, &sd2snes};
+    Label statusLabel{&layout, Size{~0, 0}};
+    ProgressBar progressBar{&layout, Size{~0, 0}};
+    HorizontalLayout buttonLayout{&layout, Size{~0, 0}};
+      Button exportButton{&buttonLayout, Size{80, 0}};
+      Button exitButton{&buttonLayout, Size{80, 0}};
+
   ExportMethod exportMethod;
   bool exportManifest;
 
@@ -42,25 +65,4 @@ struct Program {
   string destination;
 };
 
-struct ExportSettings : Window {
-  ExportSettings();
-  auto setFilename(const string& file) -> void;
-  auto setProgress(uint files, uint fileCount) -> void;
-
-  HorizontalLayout layout{this};
-    VerticalLayout selectLayout{&layout, Size{~0, ~0}};
-      Label selectLabel{&selectLayout, Size{~0, 0}};
-      HorizontalLayout gamepakLayout{&selectLayout, Size{~0, 0}};
-        RadioLabel gamepak{&gamepakLayout, Size{160, 0}};
-        CheckLabel manifest{&gamepakLayout, Size{160, 0}};
-      RadioLabel sd2snes{&selectLayout, Size{160, 0}};
-      Group exportGroup{&gamepak, &sd2snes};
-      Label filenameLabel{&selectLayout, Size{~0, 0}};
-      ProgressBar progressBar{&selectLayout, Size{~0, 0}};
-    VerticalLayout buttonLayout{&layout, Size{80, ~0}};
-      Button exportButton{&buttonLayout, Size{~0, 0}};
-      Button cancelButton{&buttonLayout, Size{~0, 0}};
-};
-
 extern unique_pointer<Program> program;
-extern unique_pointer<ExportSettings> exportSettings;
