@@ -1,4 +1,4 @@
-Mercurial Magic v00r05
+Mercurial Magic v00r06
 Author: hex_usr
 Dependencies:
   nall (by byuu)
