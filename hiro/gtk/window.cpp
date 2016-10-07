@@ -48,11 +48,10 @@ static auto Window_configure(GtkWidget* widget, GdkEvent* event, pWindow* p) -> 
 
   if(!p->state().fullScreen) {
     //update geometry settings
-    settings->geometry.frameX = client.x - border.x;
-    settings->geometry.frameY = client.y - border.y;
-    settings->geometry.frameWidth = border.width - client.width;
-    settings->geometry.frameHeight = border.height - client.height;
-    settings->save();
+    settings.geometry.frameX = client.x - border.x;
+    settings.geometry.frameY = client.y - border.y;
+    settings.geometry.frameWidth = border.width - client.width;
+    settings.geometry.frameHeight = border.height - client.height;
   }
 
   Geometry geometry = {
@@ -212,10 +211,10 @@ auto pWindow::frameMargin() const -> Geometry {
   };
 
   return {
-    settings->geometry.frameX,
-    settings->geometry.frameY + _menuHeight(),
-    settings->geometry.frameWidth,
-    settings->geometry.frameHeight + _menuHeight() + _statusHeight()
+    settings.geometry.frameX,
+    settings.geometry.frameY + _menuHeight(),
+    settings.geometry.frameWidth,
+    settings.geometry.frameHeight + _menuHeight() + _statusHeight()
   };
 }
 
@@ -267,6 +266,8 @@ auto pWindow::setFullScreen(bool fullScreen) -> void {
     gtk_window_unfullscreen(GTK_WINDOW(widget));
     state().geometry = windowedGeometry;
   }
+  auto time = chrono::millisecond();
+  while(chrono::millisecond() - time < 20) gtk_main_iteration_do(false);
 }
 
 auto pWindow::setGeometry(Geometry geometry) -> void {
@@ -279,7 +280,12 @@ auto pWindow::setGeometry(Geometry geometry) -> void {
   gtk_window_set_geometry_hints(GTK_WINDOW(widget), GTK_WIDGET(widget), &geom, GDK_HINT_MIN_SIZE);
 
   gtk_widget_set_size_request(formContainer, geometry.width(), geometry.height());
+  auto time1 = chrono::millisecond();
+  while(chrono::millisecond() - time1 < 20) gtk_main_iteration_do(false);
+
   gtk_window_resize(GTK_WINDOW(widget), geometry.width(), geometry.height() + _menuHeight() + _statusHeight());
+  auto time2 = chrono::millisecond();
+  while(chrono::millisecond() - time2 < 20) gtk_main_iteration_do(false);
 }
 
 auto pWindow::setModal(bool modal) -> void {
@@ -328,13 +334,13 @@ auto pWindow::setVisible(bool visible) -> void {
     if(gtk_widget_get_visible(gtkMenu)) {
       GtkAllocation allocation;
       gtk_widget_get_allocation(gtkMenu, &allocation);
-      settings->geometry.menuHeight = allocation.height;
+      settings.geometry.menuHeight = allocation.height;
     }
 
     if(gtk_widget_get_visible(gtkStatus)) {
       GtkAllocation allocation;
       gtk_widget_get_allocation(gtkStatus, &allocation);
-      settings->geometry.statusHeight = allocation.height;
+      settings.geometry.statusHeight = allocation.height;
     }
   }
 
@@ -358,7 +364,7 @@ auto pWindow::_append(mMenu& menu) -> void {
 }
 
 auto pWindow::_menuHeight() const -> signed {
-  return gtk_widget_get_visible(gtkMenu) ? settings->geometry.menuHeight : 0;
+  return gtk_widget_get_visible(gtkMenu) ? settings.geometry.menuHeight : 0;
 }
 
 auto pWindow::_setIcon(const string& pathname) -> bool {
@@ -414,7 +420,7 @@ auto pWindow::_setStatusVisible(bool visible) -> void {
 }
 
 auto pWindow::_statusHeight() const -> signed {
-  return gtk_widget_get_visible(gtkStatus) ? settings->geometry.statusHeight : 0;
+  return gtk_widget_get_visible(gtkStatus) ? settings.geometry.statusHeight : 0;
 }
 
 }

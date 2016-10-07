@@ -62,12 +62,12 @@ template<typename T> struct stringify;
 //format.hpp
 template<typename... P> inline auto print(P&&...) -> void;
 template<typename... P> inline auto print(FILE*, P&&...) -> void;
-template<typename T> inline auto numeral(T value, long precision = 0, char padchar = '0') -> string;
-inline auto hex(uintmax_t value, long precision = 0, char padchar = '0') -> string;
-inline auto octal(uintmax_t value, long precision = 0, char padchar = '0') -> string;
-inline auto binary(uintmax_t value, long precision = 0, char padchar = '0') -> string;
+template<typename T> inline auto pad(const T& value, long precision = 0, char padchar = ' ') -> string;
+inline auto hex(uintmax value, long precision = 0, char padchar = '0') -> string;
+inline auto octal(uintmax value, long precision = 0, char padchar = '0') -> string;
+inline auto binary(uintmax value, long precision = 0, char padchar = '0') -> string;
 template<typename T> inline auto pointer(const T* value, long precision = 0) -> string;
-inline auto pointer(uintptr_t value, long precision = 0) -> string;
+inline auto pointer(uintptr value, long precision = 0) -> string;
 
 //match.hpp
 inline auto tokenize(const char* s, const char* p) -> bool;
@@ -75,8 +75,8 @@ inline auto tokenize(string_vector& list, const char* s, const char* p) -> bool;
 
 //utility.hpp
 inline auto slice(string_view self, int offset = 0, int length = -1) -> string;
-inline auto fromInteger(char* result, intmax_t value) -> char*;
-inline auto fromNatural(char* result, uintmax_t value) -> char*;
+inline auto fromInteger(char* result, intmax value) -> char*;
+inline auto fromNatural(char* result, uintmax value) -> char*;
 inline auto fromReal(char* str, long double value) -> uint;
 
 struct string {
@@ -168,24 +168,20 @@ public:
   auto end() const -> const char* { return &data()[size()]; }
 
   //atoi.hpp
-  inline auto integer() const -> intmax_t;
-  inline auto natural() const -> uintmax_t;
-  inline auto hex() const -> uintmax_t;
+  inline auto integer() const -> intmax;
+  inline auto natural() const -> uintmax;
+  inline auto hex() const -> uintmax;
   inline auto real() const -> double;
 
   //core.hpp
   inline auto operator[](int) const -> const char&;
+  inline auto operator()(int, char) const -> char;
   template<typename... P> inline auto assign(P&&...) -> type&;
   template<typename T, typename... P> inline auto append(const T&, P&&...) -> type&;
   template<typename... P> inline auto append(const nall::string_format&, P&&...) -> type&;
   inline auto append() -> type&;
   template<typename T> inline auto _append(const stringify<T>&) -> string&;
   inline auto length() const -> uint;
-
-  //datetime.hpp
-  inline static auto date(time_t = 0) -> string;
-  inline static auto time(time_t = 0) -> string;
-  inline static auto datetime(time_t = 0) -> string;
 
   //find.hpp
   template<bool, bool> inline auto _find(int, string_view) const -> maybe<uint>;
@@ -315,7 +311,6 @@ struct string_format : vector<string> {
 #include <nall/string/compare.hpp>
 #include <nall/string/convert.hpp>
 #include <nall/string/core.hpp>
-#include <nall/string/datetime.hpp>
 #include <nall/string/find.hpp>
 #include <nall/string/format.hpp>
 #include <nall/string/list.hpp>
@@ -334,3 +329,8 @@ struct string_format : vector<string> {
 #include <nall/string/markup/xml.hpp>
 #include <nall/string/transform/cml.hpp>
 #include <nall/string/transform/dml.hpp>
+
+namespace nall {
+//inline auto range(const string& value) { return range_t{0, (int)value.size(), 1}; }
+//inline auto rrange(const string& value) { return range_t{(int)value.size() - 1, -1, -1}; }
+}

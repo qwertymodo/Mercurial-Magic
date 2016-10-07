@@ -56,8 +56,12 @@ auto nall::main(string_vector args) -> void {
     if(string source = BrowserDialog()
     .setTitle("Load ROM Image")
     .setPath(settings["daedalus/Path"].text())
-    .setFilters("ROM Files|*.sfc:*.smc:*.bs:*.st:*.zip")
-    .openFile()) {
+    .setFilters("ROM Files|"
+      "*.sfc:*.smc:"
+      "*.bs:"
+      "*.st:"
+      "*.zip"
+    ).openFile()) {
       if(string target = daedalus.import(source)) {
         settings["daedalus/Path"].setValue(Location::path(source));
         return print(target, "\n");

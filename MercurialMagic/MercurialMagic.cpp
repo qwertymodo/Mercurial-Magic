@@ -48,7 +48,7 @@ Program::Program(string_vector args) {
     manifest.setEnabled(true);
   });
 
-  manifest.setText("Export Manifest");
+  manifest.setText("Export manifest");
   manifest.onToggle([&] { exportManifest = manifest.checked(); });
 
   sd2snes.setText("SD2SNES");
@@ -273,6 +273,7 @@ auto Program::finishExport() -> void {
   }
 
   information("MSU-1 pack exported!");
+  progressBar.setPosition(0);
 
   setEnabled(true);
   exitButton.setText("Exit");
