@@ -1,5 +1,5 @@
-struct MasterSystemCartridge {
-  MasterSystemCartridge(string location, uint8_t* data, uint size);
+struct SuperGrafxCartridge {
+  SuperGrafxCartridge(string location, uint8_t* data, uint size);
 
   string manifest;
 
@@ -8,10 +8,9 @@ struct MasterSystemCartridge {
   } information;
 };
 
-MasterSystemCartridge::MasterSystemCartridge(string location, uint8_t* data, uint size) {
+SuperGrafxCartridge::SuperGrafxCartridge(string location, uint8_t* data, uint size) {
   manifest.append("board\n");
   manifest.append("  rom name=program.rom size=0x", hex(size), "\n");
-  manifest.append("  ram name=save.ram size=0x8000\n");
   manifest.append("\n");
   manifest.append("information\n");
   manifest.append("  title:  ", Location::prefix(location), "\n");
