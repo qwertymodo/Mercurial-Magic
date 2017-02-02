@@ -51,7 +51,7 @@ Program::Program(string_vector args) {
   manifest.setText("Export manifest");
   manifest.onToggle([&] { exportManifest = manifest.checked(); });
 
-  sd2snes.setText("SD2SNES");
+  sd2snes.setText("SD2SNES/Snes9x");
   sd2snes.onActivate([&] {
     exportMethod = Program::ExportMethod::SD2SNES;
     manifest.setEnabled(false);
@@ -148,7 +148,7 @@ auto Program::beginExport() -> void {
   }
 
   case ExportMethod::SD2SNES: {
-    destination = {Location::dir(packPath.text()), "SD2SNES/"};
+    destination = {Location::dir(packPath.text()), "SD2SNES-Snes9x/"};
 
     directory::create(destination);
 

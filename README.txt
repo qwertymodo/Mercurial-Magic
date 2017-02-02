@@ -10,8 +10,9 @@ License: ISC
 Mercurial Magic is an MSU-1 package manager that can export MSU-1 games to the
 following environments:
 higan v095
-higan v096-v101 and up
+higan v096-v102 and up
 SD2SNES
+Snes9x
 
 Each item in that list takes a different, incompatible format for MSU-1 games,
 which is why Mercurial Magic exists.
@@ -54,26 +55,26 @@ Export formats
 There are 2 major export formats to fit different needs.
 
 Game Pak:
-  The cartridge folder format for higan versions v096-v101 and up, with an
+  The cartridge folder format for higan versions v096-v102 and up, with an
   optional manifest for higan v095. All files except for patch.bps are exported
   exactly as they are. If patch.bps is present, the patch will be applied to a
   ROM, then the patched ROM will become "program.rom" in the Game Pak.
   The generated manifest, if any, is a hybrid manifest for higan versions v095
-  and v096-v101 and up.
+  and v096-v102 and up.
   Exporting manifests requires icarus to be in the same directory as Mercurial
   Magic. To generate a manifest for higan v095, daedalus is also required
   (included in Mercurial Magic's source).
 
-SD2SNES
+SD2SNES/Snes9x:
   A format in which all files share the name of the game's title, as required
-  by SD2SNES. All files except for patch.bps are renamed during export. If
-  patch.bps is present, the patch will be applied to a ROM, then the patched
-  ROM will become "<Game Name>.sfc" in the package. If this is a homebrew, and
-  more than 1 ROM (such as SPC7110 data or coprocessor firmware) are bundled
-  directly, they will be merged together into a single .sfc file. No manifest
-  is exported.
+  by SD2SNES and Snes9x. All files except for patch.bps are renamed during
+  export. If patch.bps is present, the patch will be applied to a ROM, then the
+  patched ROM will become "<Game Name>.sfc" in the package. If this is a
+  homebrew, and more than 1 ROM (such as SPC7110 data or coprocessor firmware)
+  are bundled directly, they will be merged together into a single .sfc file.
+  No manifest is exported.
 
-  The files themselves will be put into an "SD2SNES" directory in the same
-  directory as the .msu1 pack. The directory itself is not to be copied onto
-  your SD card; only its contents. The "sd2snes" directory on the SD card is for
-  the SD2SNES firmware and is not shown in the SD2SNES's file browser.
+  The files themselves will be put into an "SD2SNES-Snes9x" directory in the
+  same directory as the .msu1 pack. The directory itself is not to be copied
+  onto your SD card; only its contents. The "sd2snes" directory on the SD card
+  is for the SD2SNES firmware and is not shown in the SD2SNES's file browser.
