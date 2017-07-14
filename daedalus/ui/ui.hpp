@@ -32,8 +32,6 @@ struct SettingsDialog : Window {
       Label locationLabel{&locationLayout, Size{0, 0}};
       LineEdit locationEdit{&locationLayout, Size{~0, 0}};
       Button changeLocationButton{&locationLayout, Size{80, 0}};
-    CheckLabel createManifestsOption{&layout, Size{~0, 0}, 2};
-    CheckLabel useDatabaseOption{&layout, Size{~0, 0}};
 };
 
 struct ImportDialog : Window {

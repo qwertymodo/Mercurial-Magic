@@ -51,12 +51,29 @@ ifeq ($(compiler),)
   else ifeq ($(platform),macosx)
     compiler := clang++
   else ifeq ($(platform),linux)
-    compiler := g++-4.9
+    compiler := g++
   else ifeq ($(platform),bsd)
     compiler := g++49
   else
     compiler := g++
   endif
+endif
+
+# build settings
+ifeq ($(build),release)
+  flags += -O3
+else ifeq ($(build),stable)
+  flags += -O1
+else ifeq ($(build),debug)
+  flags += -g
+else ifeq ($(build),profile)
+  flags += -pg
+  link += -pg
+else ifeq ($(build),instrument)
+  flags += -O3 -fprofile-generate
+  link += -lgcov
+else ifeq ($(build),optimize)
+  flags += -O3 -fprofile-use
 endif
 
 # clang settings

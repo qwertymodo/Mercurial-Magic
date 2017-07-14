@@ -10,9 +10,8 @@ License: ISC
 Mercurial Magic is an MSU-1 package manager that can export MSU-1 games to the
 following environments:
 higan v095
-higan v096-v102 and up
-SD2SNES
-Snes9x
+higan v096-v103 and up
+SD2SNES and Snes9x
 
 Each item in that list takes a different, incompatible format for MSU-1 games,
 which is why Mercurial Magic exists.
