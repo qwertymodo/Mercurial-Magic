@@ -13,24 +13,29 @@ struct Program : Window {
     SD2SNES,
   };
 
+  //MercurialMagic.cpp
   auto validatePack() -> bool;
   auto validateROMPatch() -> bool;
   auto fetch(string_view) -> maybe<Decode::ZIP::File>;
   auto fetch(bpspatch&) -> bool;
 
   auto beginExport() -> void;
-  auto iterateExport() -> void;
+  auto iterateExport() -> bool;
   auto finishExport() -> void;
 
   auto setProgress(uint files) -> void;
   auto setEnabled(bool enabled = true) -> void;
 
-  auto information(const string&) -> void;
-  auto warning(const string&) -> void;
-  auto error(const string&) -> void;
+  auto information(const string& text) -> void;
+  auto warning(const string& text) -> void;
+  auto error(const string& text) -> void;
+  auto error(const string& text, const string_vector& buttons) -> string;
 
   auto main() -> void;
   auto quit() -> void;
+
+  //convert.cpp
+  auto convert(string path) -> bool;
 
   VerticalLayout layout{this};
     HorizontalLayout packLayout{&layout, Size{~0, 0}};

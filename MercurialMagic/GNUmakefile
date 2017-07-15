@@ -22,7 +22,7 @@ all: $(objects)
 obj/hiro.o: ../hiro/hiro.cpp
 	$(compiler) $(hiroflags) -o obj/hiro.o -c ../hiro/hiro.cpp
 
-obj/MercurialMagic.o: MercurialMagic.cpp
+obj/MercurialMagic.o: *.cpp
 	$(compiler) $(cppflags) $(flags) -o obj/MercurialMagic.o -c MercurialMagic.cpp
 
 obj/resource.o:
