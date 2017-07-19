@@ -59,7 +59,7 @@ Game Pak:
   exactly as they are. If patch.bps is present, the patch will be applied to a
   ROM, then the patched ROM will become "program.rom" in the Game Pak.
   The generated manifest, if any, is a hybrid manifest for higan versions v095
-  and v096-v102 and up.
+  and v096-v103 and up.
   Exporting manifests requires icarus to be in the same directory as Mercurial
   Magic. To generate a manifest for higan v095, daedalus is also required
   (included in Mercurial Magic's source).

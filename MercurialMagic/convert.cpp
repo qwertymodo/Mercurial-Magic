@@ -1,10 +1,10 @@
-#include <ramus/audio/wave.hpp>
+#include <ramus/decode/wave.hpp>
 
 auto Program::convert(string path) -> bool {
   if(Location::suffix(path) == ".wav") {
     /*
     auto data = file::read(path);
-    ramus::Audio::Wave audio(data);
+    ramus::Decode::Wave audio(data);
     if(!audio) return false;
 
     if(audio.frequency != 44100) return false;
@@ -15,7 +15,7 @@ auto Program::convert(string path) -> bool {
     if(fp.open({Location::path(path), Location::prefix(path), ".pcm"}, file::mode::write)) {
       fp.writes("MSU1");
       fp.writel(loop, 4);
-      while(audio.remainingSamples) {
+      while(audio) {
         auto sample = audio.sample();
         fp.writel(sample[0] * 32768.0, 2);
         fp.writel(sample[1] * 32768.0, 2);

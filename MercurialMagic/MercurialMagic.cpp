@@ -34,7 +34,7 @@ Program::Program(string_vector args) {
     romPath.setText(BrowserDialog()
     .setTitle("Load Super Famicom ROM")
     .setPath(Path::real(packPath.text()))
-    .setFilters(string{"Super Famicom ROM|*.sfc"})
+    .setFilters(string{"Super Famicom ROM|*.sfc:*.smc"})
     .openFile());
     bool valid = validateROMPatch();
     exportButton.setEnabled(valid);
@@ -137,7 +137,7 @@ auto Program::beginExport() -> void {
   switch(exportMethod) {
 
   case ExportMethod::GamePak: {
-    destination = {Location::dir(packPath.text()), Location::prefix(packPath.text()), ".sfc", "/"};
+    destination = {Location::dir(packPath.text()), Location::prefix(packPath.text()), ".sfc/"};
 
     directory::create(destination);
 
