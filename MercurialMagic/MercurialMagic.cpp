@@ -34,7 +34,11 @@ Program::Program(string_vector args) {
     romPath.setText(BrowserDialog()
     .setTitle("Load Super Famicom ROM")
     .setPath(Path::real(packPath.text()))
+    #if defined(PLATFORM_WINDOWS)
+    .setFilters(string{"Super Famicom ROM|*.sfc:*.smc:*.SFC:*.SMC"})
+    #else
     .setFilters(string{"Super Famicom ROM|*.sfc:*.smc"})
+    #endif
     .openFile());
     bool valid = validateROMPatch();
     exportButton.setEnabled(valid);
@@ -44,32 +48,29 @@ Program::Program(string_vector args) {
 
   ((RadioLabel*)&exportGroup.objects()[exportMethod])->setChecked();
 
-  gamepak.setText("Game Pak (cartridge folder)");
-  gamepak.onActivate([&] {
+  gamepak.setText("Game Pak (cartridge folder)").onActivate([&] {
     exportMethod = Program::ExportMethod::GamePak;
     manifest.setEnabled(true);
   });
 
-  manifest.setText("Export manifest");
-  manifest.onToggle([&] { exportManifest = manifest.checked(); });
+  manifest.setText("Export manifest").onToggle([&] {
+    exportManifest = manifest.checked();
+  });
 
-  sd2snes.setText("SD2SNES/Snes9x");
-  sd2snes.onActivate([&] {
+  sd2snes.setText("SD2SNES/Snes9x").onActivate([&] {
     exportMethod = Program::ExportMethod::SD2SNES;
     manifest.setEnabled(false);
   });
 
-  exportButton.setText("Export");
-  exportButton.onActivate([&] {
+  exportButton.setText("Export").onActivate([&] {
     setEnabled(false);
     exitButton.setText("Cancel");
     beginExport();
   });
 
-  exitButton.setText("Exit");
-  exitButton.onActivate([&] { quit(); });
+  exitButton.setText("Exit").onActivate({&Program::quit, this});
 
-  onClose([&] { quit(); });
+  onClose({&Program::quit, this});
 
   args.takeLeft();  //ignore program location in argument parsing
 
@@ -251,7 +252,7 @@ auto Program::iterateExport() -> bool {
     || ext == ".flac"
     || ext == ".mp3") {
       path = {destination, "track-", trackID, ext};
-    } else {
+    } else if(ext != ".bps") {
       path = {destination, file.name};
     }
     break;
