@@ -16,8 +16,8 @@ struct Program : Window {
   //MercurialMagic.cpp
   auto validatePack() -> bool;
   auto validateROMPatch() -> bool;
-  auto fetch(string_view) -> maybe<Decode::ZIP::File>;
-  auto fetch(bpspatch&) -> bool;
+  auto fetch(string_view name) -> maybe<Decode::ZIP::File>;
+  auto fetch(unique_pointer<bpspatch>& patch) -> bool;
 
   auto beginExport() -> void;
   auto iterateExport() -> bool;
@@ -63,8 +63,7 @@ struct Program : Window {
 
   Decode::ZIP pack;
   vector<uint8_t> patchContents;
-  bool usesPatch;
-  bpspatch patch;
+  unique_pointer<bpspatch> patch;
 
   uint zipIndex;
   string destination;

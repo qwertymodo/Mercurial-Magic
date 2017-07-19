@@ -80,7 +80,7 @@ Program::Program(string_vector args) {
     valid = validatePack();
   }
 
-  if(usesPatch && args) {
+  if(patch && args) {
     romPath.setText(args.takeLeft());
     valid = validateROMPatch();
   }
@@ -96,19 +96,19 @@ auto Program::validatePack() -> bool {
   if(!fetch("msu1.rom")) return false;
   if(!fetch("program.rom") && !fetch("patch.bps")) return false;
 
-  usesPatch = fetch(patch);
-  romLabel.setText(usesPatch ? "ROM path:" : "No ROM needed");
-  romPath.setEnabled(usesPatch);
-  romChange.setEnabled(usesPatch);
-  if(!usesPatch) romPath.setText("");
+  fetch(patch);
+  romLabel.setText(patch ? "ROM path:" : "No ROM needed");
+  romPath.setEnabled(patch ? true : false);
+  romChange.setEnabled(patch ? true : false);
+  if(!patch) romPath.setText("");
 
-  return !usesPatch || validateROMPatch();
+  return !patch || validateROMPatch();
 }
 
 auto Program::validateROMPatch() -> bool {
   if(!romPath.text()) return false;
 
-  if(usesPatch) patch.source(romPath.text());
+  if(patch) patch->source(romPath.text());
 
   return true;
 }
@@ -120,10 +120,12 @@ auto Program::fetch(string_view name) -> maybe<Decode::ZIP::File> {
   return nothing;
 }
 
-auto Program::fetch(bpspatch& patch) -> bool {
+auto Program::fetch(unique_pointer<bpspatch>& patch) -> bool {
+  if(patch) patch.reset();
   if(auto file = fetch("patch.bps")) {
+    patch = new bpspatch;
     patchContents = pack.extract(file());
-    patch.modify(patchContents.data(), patchContents.size());
+    patch->modify(patchContents.data(), patchContents.size());
     return true;
   }
   return false;
@@ -142,9 +144,9 @@ auto Program::beginExport() -> void {
 
     directory::create(destination);
 
-    if(usesPatch) {
-      patch.target({destination, "program.rom"});
-      patchResult = patch.apply();
+    if(patch) {
+      patch->target({destination, "program.rom"});
+      patchResult = patch->apply();
     }
 
     break;
@@ -155,9 +157,9 @@ auto Program::beginExport() -> void {
 
     directory::create(destination);
 
-    if(usesPatch) {
-      patch.target({destination, Location::prefix(packPath.text()), ".sfc"});
-      patchResult = patch.apply();
+    if(patch) {
+      patch->target({destination, Location::prefix(packPath.text()), ".sfc"});
+      patchResult = patch->apply();
     }
 
     static string_vector roms = {
@@ -182,7 +184,7 @@ auto Program::beginExport() -> void {
 
   }
 
-  if(usesPatch) {
+  if(patch) {
     switch(patchResult) {
     case bpspatch::result::unknown:
       error("There was an unspecified problem in applying BPS patch.");
@@ -345,6 +347,9 @@ auto Program::finishExport() -> void {
     }
   }
 
+  if(patch) patch.reset();
+  packPath.setText("");
+  romPath.setText("");
   information("MSU-1 pack exported!");
   progressBar.setPosition(0);
 
