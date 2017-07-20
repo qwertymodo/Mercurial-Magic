@@ -17,20 +17,26 @@ Program::Program(string_vector args) {
   setResizable(false);
 
   packLabel.setText("MSU-1 Pack path:");
-  packChange.setText("Change ...");
-  packChange.onActivate([&] {
+  packPath.onChange([&] {
+    outputName.setText(Location::prefix(packPath.text().transform("\\", "/")));
+    valid = validatePack();
+    exportButton.setEnabled(valid && outputName.text());
+  });
+  packChange.setText("Change ...").onActivate([&] {
     packPath.setText(BrowserDialog()
     .setTitle("Load MSU-1 Pack")
     .setPath(Path::program())
     .setFilters(string{"MSU-1 Pack|*.msu1"})
     .openFile());
-    bool valid = validatePack();
-    exportButton.setEnabled(valid);
+    packPath.doChange();
   });
 
   romLabel.setText("ROM path:");
-  romChange.setText("Change ...");
-  romChange.onActivate([&] {
+  romPath.onChange([&] {
+    valid = validateROMPatch();
+    exportButton.setEnabled(valid && outputName.text());
+  });
+  romChange.setText("Change ...").onActivate([&] {
     romPath.setText(BrowserDialog()
     .setTitle("Load Super Famicom ROM")
     .setPath(Path::real(packPath.text()))
@@ -40,9 +46,14 @@ Program::Program(string_vector args) {
     .setFilters(string{"Super Famicom ROM|*.sfc:*.smc"})
     #endif
     .openFile());
-    bool valid = validateROMPatch();
-    exportButton.setEnabled(valid);
+    romPath.doChange();
   });
+
+  outputLabel.setText("Output name:");
+  outputName.onChange([&] {
+    exportButton.setEnabled(valid && outputName.text());
+  });
+  outputExtLabel.setText(".sfc/");
 
   selectLabel.setText("Export as...");
 
@@ -51,6 +62,7 @@ Program::Program(string_vector args) {
   gamepak.setText("Game Pak (cartridge folder)").onActivate([&] {
     exportMethod = Program::ExportMethod::GamePak;
     manifest.setEnabled(true);
+    outputExtLabel.setText(".sfc/");
   });
 
   manifest.setText("Export manifest").onToggle([&] {
@@ -60,6 +72,7 @@ Program::Program(string_vector args) {
   sd2snes.setText("SD2SNES/Snes9x").onActivate([&] {
     exportMethod = Program::ExportMethod::SD2SNES;
     manifest.setEnabled(false);
+    outputExtLabel.setText(".sfc");
   });
 
   exportButton.setText("Export").onActivate([&] {
@@ -74,7 +87,7 @@ Program::Program(string_vector args) {
 
   args.takeLeft();  //ignore program location in argument parsing
 
-  bool valid = false;
+  valid = false;
   if(args) {
     packPath.setText(args.takeLeft());
     valid = validatePack();
@@ -91,6 +104,8 @@ Program::Program(string_vector args) {
 }
 
 auto Program::validatePack() -> bool {
+  if(!packPath.text() || !file::exists(packPath.text())) return false;
+
   pack.open(packPath.text());
 
   if(!fetch("msu1.rom")) return false;
@@ -106,7 +121,7 @@ auto Program::validatePack() -> bool {
 }
 
 auto Program::validateROMPatch() -> bool {
-  if(!romPath.text()) return false;
+  if(!romPath.text() || !file::exists(romPath.text())) return false;
 
   if(patch) patch->source(romPath.text());
 
@@ -140,7 +155,7 @@ auto Program::beginExport() -> void {
   switch(exportMethod) {
 
   case ExportMethod::GamePak: {
-    destination = {Location::dir(packPath.text()), Location::prefix(packPath.text()), ".sfc/"};
+    destination = {Location::dir(packPath.text()), outputName.text(), ".sfc/"};
 
     directory::create(destination);
 
@@ -158,7 +173,7 @@ auto Program::beginExport() -> void {
     directory::create(destination);
 
     if(patch) {
-      patch->target({destination, Location::prefix(packPath.text()), ".sfc"});
+      patch->target({destination, outputName.text(), ".sfc"});
       patchResult = patch->apply();
     }
 
@@ -171,7 +186,7 @@ auto Program::beginExport() -> void {
       "*.data.rom",
     };
 
-    file rom({destination, Location::prefix(packPath.text()), ".sfc"}, file::mode::write);
+    file rom({destination, outputName.text(), ".sfc"}, file::mode::write);
     for(string& romName : roms) {
       if(auto file = fetch(romName)) {
         rom.write(pack.extract(file()).data(), file().size);
@@ -267,11 +282,11 @@ auto Program::iterateExport() -> bool {
     || ext == ".ogg"
     || ext == ".flac"
     || ext == ".mp3") {
-      path = {destination, Location::prefix(packPath.text()), "-", trackID, ext};
+      path = {destination, outputName.text(), "-", trackID, ext};
     } else if(file.name == "msu1.rom") {
-      path = {destination, Location::prefix(packPath.text()), ".msu"};
+      path = {destination, outputName.text(), ".msu"};
     } else if(file.name == "program.rom") {
-      path = {destination, Location::prefix(packPath.text()), ".sfc"};
+      path = {destination, outputName.text(), ".sfc"};
     }
 
     break;
@@ -350,6 +365,7 @@ auto Program::finishExport() -> void {
   if(patch) patch.reset();
   packPath.setText("");
   romPath.setText("");
+  outputName.setText("");
   information("MSU-1 pack exported!");
   progressBar.setPosition(0);
 
@@ -383,6 +399,7 @@ auto Program::setEnabled(bool enabled) -> void {
   packChange.setEnabled(enabled);
   romPath.setEnabled(enabled);
   romChange.setEnabled(enabled);
+  outputName.setEnabled(enabled);
   gamepak.setEnabled(enabled);
   manifest.setEnabled(enabled);
   sd2snes.setEnabled(enabled);

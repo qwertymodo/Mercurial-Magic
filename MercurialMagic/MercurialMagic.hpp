@@ -46,6 +46,10 @@ struct Program : Window {
       Label romLabel{&romLayout, Size{100, 0}};
       LineEdit romPath{&romLayout, Size{400, 0}};
       Button romChange{&romLayout, Size{80, 0}};
+    HorizontalLayout outputLayout{&layout, Size{~0, 0}};
+      Label outputLabel{&outputLayout, Size{100, 0}};
+      LineEdit outputName{&outputLayout, Size{400, 0}};
+      Label outputExtLabel{&outputLayout, Size{50, 0}};
     Label selectLabel{&layout, Size{~0, 0}};
     HorizontalLayout gamepakLayout{&layout, Size{~0, 0}};
       RadioLabel gamepak{&gamepakLayout, Size{160, 0}};
@@ -61,6 +65,7 @@ struct Program : Window {
   ExportMethod exportMethod;
   bool exportManifest;
 
+  bool valid;
   Decode::ZIP pack;
   vector<uint8_t> patchContents;
   unique_pointer<bpspatch> patch;
