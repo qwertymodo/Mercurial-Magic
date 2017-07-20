@@ -77,7 +77,6 @@ Program::Program(string_vector args) {
 
   exportButton.setText("Export").onActivate([&] {
     setEnabled(false);
-    exitButton.setText("Cancel");
     beginExport();
   });
 
@@ -175,24 +174,24 @@ auto Program::beginExport() -> void {
     if(patch) {
       patch->target({destination, outputName.text(), ".sfc"});
       patchResult = patch->apply();
-    }
+    } else {
+      static string_vector roms = {
+        "program.rom",
+        "data.rom",
+        "slot-*.rom",
+        "*.boot.rom",
+        "*.program.rom",
+        "*.data.rom",
+      };
 
-    static string_vector roms = {
-      "program.rom",
-      "data.rom",
-      "slot-*.rom",
-      "*.boot.rom",
-      "*.program.rom",
-      "*.data.rom",
-    };
-
-    file rom({destination, outputName.text(), ".sfc"}, file::mode::write);
-    for(string& romName : roms) {
-      if(auto file = fetch(romName)) {
-        rom.write(pack.extract(file()).data(), file().size);
+      file rom({destination, outputName.text(), ".sfc"}, file::mode::write);
+      for(string& romName : roms) {
+        if(auto file = fetch(romName)) {
+          rom.write(pack.extract(file()).data(), file().size);
+        }
       }
+      rom.close();
     }
-    rom.close();
 
     break;
   }
@@ -202,7 +201,7 @@ auto Program::beginExport() -> void {
   if(patch) {
     switch(patchResult) {
     case bpspatch::result::unknown:
-      error("There was an unspecified problem in applying BPS patch.");
+      error("There was an unspecified problem in applying the BPS patch.");
       break;
     case bpspatch::result::patch_invalid_header:
       error("The BPS patch's header is invalid!");
@@ -220,11 +219,22 @@ auto Program::beginExport() -> void {
       });
       break;
     case bpspatch::result::source_checksum_invalid:
-      warning({
-        "The ROM's checksum does not match the one in the patch.\n",
+      uint32_t expectedCRC32 = 0;
+      for(uint i : range(4)) {
+        expectedCRC32 |= patchContents[patchContents.size() - 12 + i] << (i << 3);
+      }
+      string response = warning({
+        "The ROM's CRC32 does not match the patch's expected CRC32.\n",
+        "The expected CRC32 is: ", hex(expectedCRC32, 8L).upcase(), "\n\n",
+
         "If you are applying multiple patches to a ROM, this is normal.\n",
         "Otherwise, make sure you select the correct ROM."
-      });
+      }, {"Continue", "Cancel"});
+      if(response == "Cancel") {
+        setEnabled(true);
+        information("Cancelled");
+        return;
+      }
       break;
     }
   }
@@ -370,15 +380,14 @@ auto Program::finishExport() -> void {
   progressBar.setPosition(0);
 
   setEnabled(true);
-  exitButton.setText("Exit");
 }
 
 auto Program::information(const string& text) -> void {
   statusLabel.setText(text);
 }
 
-auto Program::warning(const string& text) -> void {
-  MessageDialog().setTitle("Mercurial Magic").setText(text).warning();
+auto Program::warning(const string& text, const string_vector& buttons) -> string {
+  return MessageDialog().setTitle("Mercurial Magic").setText(text).warning(buttons);
 }
 
 auto Program::error(const string& text) -> void {
@@ -404,6 +413,7 @@ auto Program::setEnabled(bool enabled) -> void {
   manifest.setEnabled(enabled);
   sd2snes.setEnabled(enabled);
   exportButton.setEnabled(enabled);
+  exitButton.setText(enabled ? "Exit" : "Cancel");
 }
 
 auto Program::main() -> void {

@@ -27,7 +27,7 @@ struct Program : Window {
   auto setEnabled(bool enabled = true) -> void;
 
   auto information(const string& text) -> void;
-  auto warning(const string& text) -> void;
+  auto warning(const string& text, const string_vector& buttons) -> string;
   auto error(const string& text) -> void;
   auto error(const string& text, const string_vector& buttons) -> string;
 
