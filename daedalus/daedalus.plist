@@ -13,7 +13,7 @@
   <string>daedalus.icns</string>
   -->
   <key>NSHighResolutionCapable</key>
-  <false/>
+  <true/>
   <key>NSSupportsAutomaticGraphicsSwitching</key>
   <true/>
 </dict>

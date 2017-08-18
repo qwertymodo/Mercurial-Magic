@@ -11,6 +11,6 @@ SettingsDialog::SettingsDialog() {
     }
   });
 
-  setTitle("daedalus Settings");
+  setTitle("Settings");
   setSize({480, layout.minimumSize().height()});
 }
