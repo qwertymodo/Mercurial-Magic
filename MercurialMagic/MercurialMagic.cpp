@@ -10,8 +10,10 @@ Program::Program(string_vector args) {
 
   exportMethod = ExportMethod::GamePak;
 
-  layout.setMargin(5);
+  bool icarus = execute("icarus", "--name").output.strip() == "icarus";
+  bool daedalus = execute("daedalus", "--name").output.strip() == "daedalus";
 
+  layout.setMargin(5);
   setTitle("Mercurial Magic");
   setSize(layout.minimumSize());
   setResizable(false);
@@ -65,9 +67,17 @@ Program::Program(string_vector args) {
     outputExtLabel.setText(".sfc/");
   });
 
-  manifest.setText("Export manifest").onToggle([&] {
+  manifest.setEnabled(icarus || daedalus).setChecked(daedalus && !icarus);
+  manifest.onToggle([&] {
     exportManifest = manifest.checked();
   });
+  if(manifest.enabled()) {
+    string higanMin = daedalus ? "v094" : "v096";
+    string higanMax = icarus   ? "v104" : "v095";
+    manifest.setText({"Export ", higanMin, "-", higanMax, " manifest"});
+  } else {
+    manifest.setText({"icarus and daedalus not found"});
+  }
 
   sd2snes.setText("SD2SNES/Snes9x").onActivate([&] {
     exportMethod = Program::ExportMethod::SD2SNES;
@@ -358,13 +368,20 @@ auto Program::finishExport() -> void {
     switch(exportMethod) {
 
     case ExportMethod::GamePak: {
+      string icarusManifest;
+      string daedalusManifest;
       if(auto manifest = execute("icarus", "--manifest", destination)) {
-        string legacyOutput = "";
-        if(auto legacyManifest = execute("daedalus", "--manifest", destination)) {
-          legacyOutput = {legacyManifest.output.split("\n\n")[0], "\n\n"};
-        }
-        file::write({destination, "manifest.bml"}, {legacyOutput, manifest.output});
+        icarusManifest = manifest.output;
       }
+      if(auto manifest = execute("daedalus", "--manifest", destination)) {
+        daedalusManifest = manifest.output;
+      }
+
+      if(icarusManifest && daedalusManifest) {
+        daedalusManifest = {daedalusManifest.split("\n\n")[0], "\n\n"};
+      }
+
+      file::write({destination, "manifest.bml"}, {daedalusManifest, icarusManifest});
 
       break;
     }

@@ -179,11 +179,21 @@ SuperFamicomCartridge::SuperFamicomCartridge(const uint8_t* data, uint size, boo
   //end firmware detection
 
   if(type == Type::SatellaviewBIOS) {
-    markup.append(
+    markup.append(  //v095
       "  mcc\n"
       "    rom name=program.rom size=0x", hex(rom_size), "\n"
       "    ram id=save name=save.ram size=0x", hex(ram_size), "\n"
       "    ram id=download name=download.ram size=0x80000\n"
+      "    map id=io address=00-3f,80-bf:5000-5fff\n"
+      "    map id=rom address=00-3f,80-bf:8000-ffff\n"
+      "    map id=rom address=40-7f,c0-ff:0000-ffff\n"
+      "    map id=ram address=20-3f:6000-7fff\n"
+    );
+    markup.append(  //v094
+      "  bsx\n"
+      "    rom name=program.rom size=0x", hex(rom_size), "\n"
+      "    ram name=save.ram size=0x", hex(ram_size), "\n"
+      "    psram name=download.ram size=0x80000\n"
       "    map id=io address=00-3f,80-bf:5000-5fff\n"
       "    map id=rom address=00-3f,80-bf:8000-ffff\n"
       "    map id=rom address=40-7f,c0-ff:0000-ffff\n"
@@ -219,6 +229,7 @@ SuperFamicomCartridge::SuperFamicomCartridge(const uint8_t* data, uint size, boo
     markup.append(
       "  hitachidsp model=HG51B169 frequency=20000000\n"
       "    rom id=program name=program.rom size=0x", hex(rom_size), "\n"
+      "    ram id=save size=0\n"
       "    rom id=data name=cx4.data.rom size=0xc00\n"
       "    ram id=data size=0xc00\n"
       "    map id=io address=00-3f,80-bf:6000-7fff\n"
