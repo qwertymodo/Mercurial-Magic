@@ -18,7 +18,7 @@ Program::Program(string_vector args) {
   setSize(layout.minimumSize());
   setResizable(false);
 
-  packLabel.setText("MSU-1 Pack path:");
+  packLabel.setText("MSU1 Pack path:");
   packPath.onChange([&] {
     outputName.setText(Location::prefix(packPath.text().transform("\\", "/")));
     valid = validatePack();
@@ -26,9 +26,9 @@ Program::Program(string_vector args) {
   });
   packChange.setText("Change ...").onActivate([&] {
     packPath.setText(BrowserDialog()
-    .setTitle("Load MSU-1 Pack")
+    .setTitle("Load MSU1 Pack")
     .setPath(Path::program())
-    .setFilters(string{"MSU-1 Pack|*.msu1"})
+    .setFilters(string{"MSU1 Pack|*.msu1"})
     .openFile());
     packPath.doChange();
   });
@@ -393,7 +393,7 @@ auto Program::finishExport() -> void {
   packPath.setText("");
   romPath.setText("");
   outputName.setText("");
-  information("MSU-1 pack exported!");
+  information("MSU1 pack exported!");
   progressBar.setPosition(0);
 
   setEnabled(true);
