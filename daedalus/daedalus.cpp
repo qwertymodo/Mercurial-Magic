@@ -37,6 +37,8 @@ Daedalus daedalus;
 
 #include <nall/main.hpp>
 auto nall::main(string_vector args) -> void {
+  Application::setName("daedalus");
+
   if(args.size() == 2 && args[1] == "--name") {
     return print("daedalus");
   }
