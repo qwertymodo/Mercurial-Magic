@@ -10,8 +10,8 @@ Program::Program(string_vector args) {
 
   exportMethod = ExportMethod::GamePak;
 
-  bool icarus = execute("icarus", "--name").output.strip() == "icarus";
-  bool daedalus = execute("daedalus", "--name").output.strip() == "daedalus";
+  icarus = execute("icarus", "--name").output.strip() == "icarus";
+  daedalus = execute("daedalus", "--name").output.strip() == "daedalus";
 
   layout.setMargin(5);
   setTitle("Mercurial Magic");
@@ -63,7 +63,7 @@ Program::Program(string_vector args) {
 
   gamepak.setText("Game Pak (cartridge folder)").onActivate([&] {
     exportMethod = Program::ExportMethod::GamePak;
-    manifest.setEnabled(true);
+    manifest.setEnabled(icarus || daedalus);
     outputExtLabel.setText(".sfc/");
   });
 
@@ -165,9 +165,21 @@ auto Program::beginExport() -> void {
 
   case ExportMethod::GamePak: {
     destination = {Location::dir(packPath.text()), outputName.text(), ".sfc/"};
+    break;
+  }
 
-    directory::create(destination);
+  case ExportMethod::SD2SNES: {
+    destination = {Location::dir(packPath.text()), "SD2SNES-Snes9x/"};
+    break;
+  }
 
+  }
+
+  directory::create(destination);
+
+  switch(exportMethod) {
+
+  case ExportMethod::GamePak: {
     if(patch) {
       patch->target({destination, "program.rom"});
       patchResult = patch->apply();
@@ -177,10 +189,6 @@ auto Program::beginExport() -> void {
   }
 
   case ExportMethod::SD2SNES: {
-    destination = {Location::dir(packPath.text()), "SD2SNES-Snes9x/"};
-
-    directory::create(destination);
-
     if(patch) {
       patch->target({destination, outputName.text(), ".sfc"});
       patchResult = patch->apply();
@@ -364,29 +372,32 @@ auto Program::iterateExport() -> bool {
 }
 
 auto Program::finishExport() -> void {
-  if(exportManifest) {
-    switch(exportMethod) {
+  switch(exportMethod) {
 
-    case ExportMethod::GamePak: {
+  case ExportMethod::GamePak: {
+    if(exportManifest) {
       string icarusManifest;
       string daedalusManifest;
+
       if(auto manifest = execute("icarus", "--manifest", destination)) {
         icarusManifest = manifest.output;
       }
       if(auto manifest = execute("daedalus", "--manifest", destination)) {
         daedalusManifest = manifest.output;
-      }
-
-      if(icarusManifest && daedalusManifest) {
-        daedalusManifest = {daedalusManifest.split("\n\n")[0], "\n\n"};
+        if(icarusManifest) {
+          daedalusManifest = {daedalusManifest.split("\n\n")[0], "\n\n"};
+        }
       }
 
       file::write({destination, "manifest.bml"}, {daedalusManifest, icarusManifest});
-
-      break;
     }
 
-    }
+    break;
+  }
+
+  case ExportMethod::SD2SNES: {
+  }
+
   }
 
   if(patch) patch.reset();

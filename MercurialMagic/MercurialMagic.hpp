@@ -65,6 +65,9 @@ struct Program : Window {
   ExportMethod exportMethod;
   bool exportManifest;
 
+  bool icarus;
+  bool daedalus;
+
   bool valid;
   Decode::ZIP pack;
   vector<uint8_t> patchContents;
