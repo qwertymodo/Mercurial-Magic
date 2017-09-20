@@ -13,15 +13,14 @@ struct Program : Window {
     SD2SNES,
   };
 
-  //MercurialMagic.cpp
+  //program.cpp
   auto validatePack() -> bool;
   auto validateROMPatch() -> bool;
+
+  auto setDestination() -> void;
+
   auto fetch(string_view name) -> maybe<Decode::ZIP::File>;
   auto fetch(unique_pointer<bpspatch>& patch) -> bool;
-
-  auto beginExport() -> void;
-  auto iterateExport() -> bool;
-  auto finishExport() -> void;
 
   auto setProgress(uint files) -> void;
   auto setEnabled(bool enabled = true) -> void;
@@ -33,6 +32,11 @@ struct Program : Window {
 
   auto main() -> void;
   auto quit() -> void;
+
+  //export.cpp
+  auto beginExport() -> void;
+  auto iterateExport() -> bool;
+  auto finishExport() -> void;
 
   //convert.cpp
   auto convert(string path) -> bool;
@@ -52,10 +56,12 @@ struct Program : Window {
       Label outputExtLabel{&outputLayout, Size{50, 0}};
     Label selectLabel{&layout, Size{~0, 0}};
     HorizontalLayout gamepakLayout{&layout, Size{~0, 0}};
-      RadioLabel gamepak{&gamepakLayout, Size{160, 0}};
-      CheckLabel manifest{&gamepakLayout, Size{160, 0}};
-    RadioLabel sd2snes{&layout, Size{160, 0}};
-    Group exportGroup{&gamepak, &sd2snes};
+      RadioLabel gamepakExport{&gamepakLayout, Size{160, 0}};
+      CheckLabel gamepakCreateManifest{&gamepakLayout, Size{320, 0}};
+    HorizontalLayout sd2snesLayout{&layout, Size{~0, 0}};
+      RadioLabel sd2snesExport{&sd2snesLayout, Size{160, 0}};
+      CheckLabel sd2snesForceManifest{&sd2snesLayout, Size{320, 0}};
+    Group exportGroup{&gamepakExport, &sd2snesExport};
     Label statusLabel{&layout, Size{~0, 0}};
     ProgressBar progressBar{&layout, Size{~0, 0}};
     HorizontalLayout buttonLayout{&layout, Size{~0, 0}};
@@ -74,6 +80,7 @@ struct Program : Window {
   unique_pointer<bpspatch> patch;
 
   uint zipIndex;
+  vector<uint16_t> trackIDs;
   string destination;
 };
 

@@ -13,7 +13,7 @@ ifeq ($(platform),windows)
 endif
 
 objects := obj/hiro.o
-objects += obj/MercurialMagic.o
+objects += obj/program.o
 objects += $(if $(call streq,$(platform),windows),obj/resource.o)
 
 all: $(objects)
@@ -22,8 +22,8 @@ all: $(objects)
 obj/hiro.o: ../hiro/hiro.cpp
 	$(compiler) $(hiroflags) -o obj/hiro.o -c ../hiro/hiro.cpp
 
-obj/MercurialMagic.o: *.cpp
-	$(compiler) $(cppflags) $(flags) -o obj/MercurialMagic.o -c MercurialMagic.cpp
+obj/program.o: *.cpp
+	$(compiler) $(cppflags) $(flags) -o obj/program.o -c program.cpp
 
 obj/resource.o:
 	windres ../hiro/windows/hiro.rc obj/resource.o
