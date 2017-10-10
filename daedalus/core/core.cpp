@@ -5,6 +5,10 @@ auto Daedalus::error() const -> string {
   return errorMessage;
 }
 
+auto Daedalus::missing() const -> string_vector {
+  return missingFiles;
+}
+
 auto Daedalus::success(string location) -> string {
   errorMessage = "";
   return location;
@@ -28,6 +32,9 @@ auto Daedalus::manifest(string location) -> string {
 }
 
 auto Daedalus::import(string location) -> string {
+  errorMessage = {};
+  missingFiles = {};
+
   location.transform("\\", "/").trimRight("/");
   if(!file::exists(location)) return failure("file does not exist");
   if(!file::readable(location)) return failure("file is unreadable");

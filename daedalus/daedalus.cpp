@@ -27,8 +27,10 @@ Settings settings;
 #include "core/super-famicom.cpp"
 #include "core/bs-memory.cpp"
 #include "core/sufami-turbo.cpp"
-Daedalus daedalus;
 
+#if !defined(DAEDALUS_LIBRARY)
+
+Daedalus daedalus;
 #include "ui/ui.hpp"
 #include "ui/scan-dialog.cpp"
 #include "ui/settings-dialog.cpp"
@@ -76,13 +78,14 @@ auto nall::main(string_vector args) -> void {
   new SettingsDialog;
   new ImportDialog;
   new ErrorDialog;
-  #if defined(PLATFORM_MACOSX)
+  #if defined(PLATFORM_MACOS)
   Application::Cocoa::onAbout([&] {
     MessageDialog().setTitle("About daedalus").setText({
       "daedalus\n\n"
-      "Author: byuu\n"
+      "Baased on ananke and icarus by byuu"
+      "Author: hex_usr\n"
       "License: GPLv3\n"
-      "Website: http://byuu.org/\n"
+      "Website: https://board.byuu.org/viewtopic.php?f=8&t=1157\n"
     }).information();
   });
   Application::Cocoa::onPreferences([&] {
@@ -94,4 +97,7 @@ auto nall::main(string_vector args) -> void {
   #endif
   scanDialog->show();
   Application::run();
+  settings.save();
 }
+
+#endif

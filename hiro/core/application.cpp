@@ -35,12 +35,28 @@ auto Application::quit() -> void {
   return pApplication::quit();
 }
 
+auto Application::scale() -> float {
+  return state.scale;
+}
+
+auto Application::scale(float value) -> float {
+  return value * state.scale;
+}
+
 auto Application::setFont(const Font& font) -> void {
   state.font = font;
 }
 
 auto Application::setName(const string& name) -> void {
   state.name = name;
+}
+
+auto Application::setScale(float scale) -> void {
+  state.scale = scale;
+}
+
+auto Application::unscale(float value) -> float {
+  return value * (1.0 / state.scale);
 }
 
 //Windows

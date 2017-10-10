@@ -26,13 +26,11 @@ auto Daedalus::sufamiTurboImport(vector<uint8_t>& buffer, string location) -> st
   auto name = Location::prefix(location);
   auto source = Location::path(location);
   string target{settings["Library/Location"].text(), "Sufami Turbo/", name, ".st/"};
-//if(directory::exists(target)) return failure("game already exists");
 
-  auto markup = sufamiTurboManifest(buffer, location);
-  if(!markup) return failure("failed to parse ROM image");
-  if(!directory::create(target)) return failure("library path unwritable");
+  auto manifest = sufamiTurboManifest(buffer, location);
+  if(!manifest) return failure("failed to parse ROM image");
 
-  file::write({target, "manifest.bml"}, markup);
-  file::write({target, "program.rom"}, buffer);
+  write({target, "manifest.bml"}, manifest);
+  write({target, "program.rom"}, buffer);
   return success(target);
 }

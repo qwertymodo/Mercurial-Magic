@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=MercurialMagic
+Comment=Emulator
+Exec=MercurialMagic
+Icon=MercurialMagic
+Terminal=false
+Type=Application
+Categories=Utility;

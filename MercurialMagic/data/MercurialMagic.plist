@@ -3,15 +3,13 @@
 <plist version="1.0">
 <dict>
   <key>CFBundleIdentifier</key>
-  <string>org.byuu.icarus</string>
+  <string>org.byuu.board.MercurialMagic</string>
   <key>CFBundleDisplayName</key>
-  <string>daedalus</string>
+  <string>MercurialMagic</string>
   <key>CFBundleExecutable</key>
-  <string>daedalus</string>
-  <!--
+  <string>MercurialMagic</string>
   <key>CFBundleIconFile</key>
-  <string>daedalus.icns</string>
-  -->
+  <string>MercurialMagic.icns</string>
   <key>NSHighResolutionCapable</key>
   <true/>
   <key>NSSupportsAutomaticGraphicsSwitching</key>
