@@ -50,41 +50,28 @@ auto Program::beginExport() -> void {
   if(patch) {
     switch(patchResult) {
     case bpspatch::result::unknown:
-      error("There was an unspecified problem in applying the BPS patch.");
-      break;
+      return error("There was an unspecified problem in applying the BPS patch.");
     case bpspatch::result::patch_invalid_header:
-      error("The BPS patch's header is invalid!");
-      break;
+      return error("The BPS patch's header is invalid!");
     case bpspatch::result::target_too_small:
     case bpspatch::result::target_checksum_invalid:
     case bpspatch::result::patch_too_small:
     case bpspatch::result::patch_checksum_invalid:
-      error("The BPS patch is corrupt!");
-      break;
+      return error("The BPS patch is corrupt!");
     case bpspatch::result::source_too_small:
-      error({
+      return error({
         "This ROM is too small!\n",
         "Check that you are selecting the correct ROM, and try again."
       });
-      break;
     case bpspatch::result::source_checksum_invalid:
       uint32_t expectedCRC32 = 0;
       for(uint i : range(4)) {
         expectedCRC32 |= patchContents[patchContents.size() - 12 + i] << (i << 3);
       }
-      string response = warning({
-        "The ROM's CRC32 does not match the patch's expected CRC32.\n",
-        "The expected CRC32 is: ", hex(expectedCRC32, 8L).upcase(), "\n\n",
-
-        "If you are applying multiple patches to a ROM, this is normal.\n",
-        "Otherwise, make sure you select the correct ROM."
-      }, {"Continue", "Cancel"});
-      if(response == "Cancel") {
-        setEnabled(true);
-        information("Cancelled");
-        return;
-      }
-      break;
+      return error({
+        "The patch is not compatible with this ROM.\n",
+        "Expected CRC32: ", hex(expectedCRC32, 8L).upcase()
+      });
     }
   }
 
@@ -182,21 +169,25 @@ auto Program::iterateExport() -> bool {
         invoke("https://github.com/jbaiter/wav2msu");
         #endif
       }
+      thread::exit();
     } else if(ext == ".ogg") {
       error({
         "Could not convert ", file.name, " to PCM!\n"
         "Ogg Vorbis is not currently supported."
       });
+      thread::exit();
     } else if(ext == ".flac") {
       error({
         "Could not convert ", file.name, " to PCM!\n"
         "FLAC is not currently supported."
       });
+      thread::exit();
     } else if(ext == ".mp3") {
       error({
         "Could not convert ", file.name, " to PCM!\n"
         "MP3 is not currently supported."
       });
+      thread::exit();
     }
     return false;
   }
@@ -206,8 +197,6 @@ auto Program::iterateExport() -> bool {
 }
 
 auto Program::finishExport() -> void {
-  if(patch) patch.reset();
-
   string icarusManifest;
   string daedalusManifest;
   if(exportManifest) {
@@ -260,12 +249,6 @@ auto Program::finishExport() -> void {
 
   }
 
-  packPath.setText("");
-  romPath.setText("");
-  outputName.setText("");
-  trackIDs.reset();
   information("MSU1 pack exported!");
-  progressBar.setPosition(0);
-
-  setEnabled(true);
+  reset();
 }

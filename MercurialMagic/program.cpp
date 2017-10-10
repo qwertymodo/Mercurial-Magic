@@ -203,6 +203,18 @@ auto Program::setEnabled(bool enabled) -> void {
   exitButton.setText(enabled ? "Exit" : "Cancel");
 }
 
+auto Program::reset() -> void {
+  if(patch) patch.reset();
+  pack.close();
+  pack = {};
+  packPath.setText("");
+  romPath.setText("");
+  outputName.setText("");
+  trackIDs.reset();
+  progressBar.setPosition(0);
+  setEnabled(true);
+}
+
 auto Program::information(const string& text) -> void {
   statusLabel.setText(text);
 }
@@ -212,11 +224,14 @@ auto Program::warning(const string& text, const string_vector& buttons) -> strin
 }
 
 auto Program::error(const string& text) -> void {
+  reset();
+  statusLabel.setText("Error");
   MessageDialog().setTitle("Mercurial Magic").setText(text).error();
-  thread::exit();
 }
 
 auto Program::error(const string& text, const string_vector& buttons) -> string {
+  reset();
+  statusLabel.setText("Error");
   return MessageDialog().setTitle("Mercurial Magic").setText(text).error(buttons);
 }
 
