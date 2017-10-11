@@ -1,3 +1,5 @@
+#include <ramus/patch/bps-ignore-size.hpp>
+
 auto Program::beginExport() -> void {
   setDestination();
   directory::create(destination);
@@ -5,21 +7,32 @@ auto Program::beginExport() -> void {
   zipIndex = 0;
   setProgress(0);
 
-  uint patchResult;
+  bpspatch* patch = nullptr;
+  ramus::bpspatch_ignore_size* patch_ignore_size = nullptr;
+  if(patchContents) {
+    if(!violateBPS) {
+      patch = new bpspatch;
+      patch->modify(patchContents.data(), patchContents.size());
+      patch->source(romPath());
+    } else {
+      patch_ignore_size = new ramus::bpspatch_ignore_size;
+      patch_ignore_size->modify(patchContents.data(), patchContents.size());
+      patch_ignore_size->source(romPath());
+    }
+  }
+
+  string targetPath;
 
   switch(exportMethod) {
 
   case ExportMethod::GamePak: {
-    if(patch) {
-      patch->target({destination, "program.rom"});
-      patchResult = patch->apply();
-    }
+    targetPath = {destination, "program.rom"};
 
     break;
   }
 
   case ExportMethod::SD2SNES: {
-    string filename = exportManifest ? "program.rom" : string{outputName.text(), ".sfc"};
+    string filename = sd2snesForceManifest ? "program.rom" : string{outputName(), ".sfc"};
     static string_vector roms = {
       "program.rom",
       "data.rom",
@@ -37,10 +50,7 @@ auto Program::beginExport() -> void {
     }
     rom.close();
 
-    if(patch) {
-      patch->target({destination, filename});  //temporary name
-      patchResult = patch->apply();
-    }
+    targetPath = {destination, filename};
 
     break;
   }
@@ -48,6 +58,8 @@ auto Program::beginExport() -> void {
   }
 
   if(patch) {
+    patch->target(targetPath);
+    uint patchResult = patch->apply();
     switch(patchResult) {
     case bpspatch::result::unknown:
       return error("There was an unspecified problem in applying the BPS patch.");
@@ -73,7 +85,28 @@ auto Program::beginExport() -> void {
         "Expected CRC32: ", hex(expectedCRC32, 8L).upcase()
       });
     }
+  } else if(patch_ignore_size) {
+    patch_ignore_size->target(targetPath);
+    uint patchResult = patch_ignore_size->apply();
+    switch(patchResult) {
+    case ramus::bpspatch_ignore_size::result::unknown:
+      return error("There was an unspecified problem in applying the BPS patch.");
+    case ramus::bpspatch_ignore_size::result::patch_invalid_header:
+      return error("The BPS patch's header is invalid!");
+    case ramus::bpspatch_ignore_size::result::target_too_small:
+    case ramus::bpspatch_ignore_size::result::patch_too_small:
+    case ramus::bpspatch_ignore_size::result::patch_checksum_invalid:
+      return error("The BPS patch is corrupt!");
+    case ramus::bpspatch_ignore_size::result::source_too_small:
+      return error({
+        "This ROM is too small!\n",
+        "Check that you are selecting the correct ROM, and try again."
+      });
+    }
   }
+
+  if(patch) delete patch;
+  if(patch_ignore_size) delete patch_ignore_size;
 
   thread::create([&](uintptr_t) -> void {
     while(zipIndex < pack.file.size()) {
@@ -129,9 +162,9 @@ auto Program::iterateExport() -> bool {
     || ext == ".ogg"
     || ext == ".flac"
     || ext == ".mp3") {
-      path = {destination, outputName.text(), "-", trackID, ext};
+      path = {destination, outputName(), "-", trackID, ext};
     } else if(file.name == "msu1.rom") {
-      path = {destination, exportManifest ? "msu1.rom" : string{outputName.text(), ".msu"}};
+      path = {destination, sd2snesForceManifest ? "msu1.rom" : string{outputName(), ".msu"}};
     } else if(file.name.endsWith("program.rom")) {
       path = "";
     } else if(file.name.endsWith("data.rom")) {
@@ -199,40 +232,52 @@ auto Program::iterateExport() -> bool {
 auto Program::finishExport() -> void {
   string icarusManifest;
   string daedalusManifest;
-  if(exportManifest) {
-    if(auto manifest = execute("icarus", "--manifest", destination)) {
-      icarusManifest = manifest.output;
-    }
-    if(auto manifest = execute("daedalus", "--manifest", destination)) {
-      daedalusManifest = manifest.output;
-      if(icarusManifest) {
-        daedalusManifest = {daedalusManifest.split("\n\n").left(), "\n\n"};
-      }
-    }
-  }
 
   switch(exportMethod) {
 
   case ExportMethod::GamePak: {
-    if(exportManifest) file::write({destination, "manifest.bml"}, {daedalusManifest, icarusManifest});
+    if(createManifest) {
+      if(auto manifest = execute("icarus", "--manifest", destination)) {
+        icarusManifest = manifest.output;
+      }
+      if(auto manifest = execute("daedalus", "--manifest", destination)) {
+        daedalusManifest = manifest.output;
+        if(icarusManifest) {
+          daedalusManifest = {daedalusManifest.split("\n\n").left(), "\n\n"};
+        }
+      }
+      file::write({destination, "manifest.bml"}, {daedalusManifest, icarusManifest});
+    }
     break;
   }
 
   case ExportMethod::SD2SNES: {
-    if(exportManifest) {
+    if(sd2snesForceManifest) {
+      if(auto manifest = execute("icarus", "--manifest", destination)) {
+        icarusManifest = manifest.output;
+      }
+      if(auto manifest = execute("daedalus", "--manifest", destination)) {
+        daedalusManifest = manifest.output;
+        if(icarusManifest) {
+          daedalusManifest = {daedalusManifest.split("\n\n").left(), "\n\n"};
+        }
+      }
+
       static auto substitute = [&](string& manifest) -> void {
         manifest.
-          replace("program.rom", {"\"", outputName.text(), ".sfc\""}).
-          replace("save.ram",    {"\"", outputName.text(), ".srm\""}).
-          replace("msu1.rom",    {"\"", outputName.text(), ".msu\""});
+          replace("program.rom", {"\"", outputName(), ".sfc\""}).
+          replace("save.ram",    {"\"", outputName(), ".srm\""}).
+          replace("msu1.rom",    {"\"", outputName(), ".msu\""});
       };
       substitute(icarusManifest);
       substitute(daedalusManifest);
+
       string tracks = "";
       trackIDs.sort();
       for(uint trackID : trackIDs) {
-        tracks.append("\n    track number=", trackID, " name=\"", outputName.text(), "-", trackID, ".pcm\"");
+        tracks.append("\n    track number=", trackID, " name=\"", outputName(), "-", trackID, ".pcm\"");
       }
+
       string_vector sections;
       sections = daedalusManifest.split("\n\n");
       sections[0].append(tracks);
@@ -240,9 +285,10 @@ auto Program::finishExport() -> void {
       sections = icarusManifest.split("\n\n");
       sections[0].append(tracks);
       icarusManifest = sections.merge("\n\n");
+
       file::write({destination, "manifest.bml"}, {daedalusManifest, icarusManifest});
-      file::rename({destination, "program.rom"}, {destination, outputName.text(), ".sfc"});
-      file::rename({destination, "msu1.rom"}, {destination, outputName.text(), ".msu"});
+      file::rename({destination, "program.rom"}, {destination, outputName(), ".sfc"});
+      file::rename({destination, "msu1.rom"}, {destination, outputName(), ".msu"});
     }
     break;
   }

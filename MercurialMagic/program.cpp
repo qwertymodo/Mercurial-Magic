@@ -4,96 +4,28 @@ unique_pointer<Program> program;
 
 #include "export.cpp"
 #include "convert.cpp"
+#include "basic-settings.cpp"
+#include "advanced-settings.cpp"
 
 Program::Program(string_vector args) {
   program = this;
   Application::onMain({&Program::main, this});
 
-  exportMethod = ExportMethod::GamePak;
-
   icarus = execute("icarus", "--name").output.strip() == "icarus";
   daedalus = execute("daedalus", "--name").output.strip() == "daedalus";
 
+  exportMethod = ExportMethod::GamePak;
+  createManifest = daedalus && !icarus;
+  sd2snesForceManifest = false;
+  violateBPS = false;
+
+  basicTab.refresh();
+  advancedTab.refresh();
+
   layout.setMargin(5);
   setTitle("Mercurial Magic");
-  setSize(layout.minimumSize());
+  setSize({700, 300});
   setResizable(false);
-
-  packLabel.setText("MSU1 Pack path:");
-  packPath.onChange([&] {
-    outputName.setText(Location::prefix(packPath.text().transform("\\", "/")));
-    valid = validatePack();
-    exportButton.setEnabled(valid && outputName.text());
-  });
-  packChange.setText("Change ...").onActivate([&] {
-    packPath.setText(BrowserDialog()
-    .setTitle("Load MSU1 Pack")
-    .setPath(Path::program())
-    .setFilters(string{"MSU1 Pack|*.msu1"})
-    .openFile());
-    packPath.doChange();
-  });
-
-  romLabel.setText("ROM path:");
-  romPath.onChange([&] {
-    valid = validateROMPatch();
-    exportButton.setEnabled(valid && outputName.text());
-  });
-  romChange.setText("Change ...").onActivate([&] {
-    romPath.setText(BrowserDialog()
-    .setTitle("Load Super Famicom ROM")
-    .setPath(Path::real(packPath.text()))
-    #if defined(PLATFORM_WINDOWS)
-    .setFilters(string{"Super Famicom ROM|*.sfc:*.smc:*.SFC:*.SMC"})
-    #else
-    .setFilters(string{"Super Famicom ROM|*.sfc:*.smc"})
-    #endif
-    .openFile());
-    romPath.doChange();
-  });
-
-  outputLabel.setText("Output name:");
-  outputName.onChange([&] {
-    exportButton.setEnabled(valid && outputName.text());
-  });
-  outputExtLabel.setText(".sfc/");
-
-  selectLabel.setText("Export as...");
-
-  ((RadioLabel*)&exportGroup.objects()[exportMethod])->setChecked();
-
-  gamepakExport.setText("Game Pak (cartridge folder)").onActivate([&] {
-    exportMethod = Program::ExportMethod::GamePak;
-    gamepakCreateManifest.setEnabled(icarus || daedalus);
-    sd2snesForceManifest.setEnabled(false);
-    exportManifest = gamepakCreateManifest.enabled() && gamepakCreateManifest.checked();
-    outputExtLabel.setText(".sfc/");
-  });
-
-  gamepakCreateManifest.setEnabled(icarus || daedalus).setChecked(daedalus && !icarus).onToggle([&] {
-    exportManifest = gamepakCreateManifest.checked();
-  });
-  if(icarus || daedalus) {
-    string higanMin = daedalus ? "v094" : "v096";
-    string higanMax = icarus   ? "v104" : "v095";
-    gamepakCreateManifest.setText({"Create ", higanMin, "-", higanMax, " manifest"});
-  } else {
-    gamepakCreateManifest.setText({"icarus and daedalus not found"});
-  }
-
-  sd2snesExport.setText("SD2SNES/Snes9x").onActivate([&] {
-    exportMethod = Program::ExportMethod::SD2SNES;
-    gamepakCreateManifest.setEnabled(false);
-    sd2snesForceManifest.setEnabled(icarus && daedalus);
-    exportManifest = sd2snesForceManifest.enabled() && sd2snesForceManifest.checked();
-    outputExtLabel.setText({".sfc", exportManifest ? "/" : ""});
-  });
-
-  sd2snesForceManifest.setText({"Force manifest creation (for testing)"});
-  sd2snesForceManifest.setEnabled(false).setVisible(icarus && daedalus).onToggle([&] {
-    exportManifest = sd2snesForceManifest.checked();
-    outputExtLabel.setText({".sfc", exportManifest ? "/" : ""});
-  });
 
   exportButton.setText("Export").onActivate([&] {
     setEnabled(false);
@@ -108,12 +40,12 @@ Program::Program(string_vector args) {
 
   valid = false;
   if(args) {
-    packPath.setText(args.takeLeft());
+    basicTab.packPath.setText(args.takeLeft());
     valid = validatePack();
   }
 
-  if(patch && args) {
-    romPath.setText(args.takeLeft());
+  if(fetch("patch.bps") && args) {
+    basicTab.romPath.setText(args.takeLeft());
     valid = validateROMPatch();
   }
 
@@ -122,27 +54,62 @@ Program::Program(string_vector args) {
   setVisible(true);
 }
 
-auto Program::validatePack() -> bool {
-  if(!packPath.text() || !file::exists(packPath.text())) return false;
+auto Program::packPath() -> string {
+  return basicTab.packPath.text();
+}
 
-  pack.open(packPath.text());
+auto Program::romPath() -> string {
+  return basicTab.romPath.text();
+}
+
+auto Program::outputName() -> string {
+  return basicTab.outputName.text();
+}
+
+auto Program::validatePack() -> bool {
+  if(!packPath() || !file::exists(packPath())) return false;
+
+  pack.open(packPath());
 
   if(!fetch("msu1.rom")) return false;
-  if(!fetch("program.rom") && !fetch("patch.bps")) return false;
+  bool hasROM = !!fetch("program.rom");
+  bool hasPatch = false;
+  if(auto file = fetch("patch.bps")) {
+    patchContents = pack.extract(file());
+    hasPatch = true;
+  }
+  if(!hasROM && !hasPatch) return false;
 
-  fetch(patch);
-  romLabel.setText(patch ? "ROM path:" : "No ROM needed");
-  romPath.setEnabled(patch ? true : false);
-  romChange.setEnabled(patch ? true : false);
-  if(!patch) romPath.setText("");
+  basicTab.romLabel.setText(hasPatch ? "ROM path:" : "No ROM needed");
+  basicTab.romPath.setEnabled(hasPatch);
+  basicTab.romChange.setEnabled(hasPatch);
+  if(hasROM) basicTab.romPath.setText("");
 
-  return !patch || validateROMPatch();
+  return hasROM || (hasPatch && validateROMPatch());
 }
 
 auto Program::validateROMPatch() -> bool {
-  if(!romPath.text() || !file::exists(romPath.text())) return false;
+  if(!romPath() || !file::exists(romPath())) return false;
 
-  if(patch) patch->source(romPath.text());
+  if(fetch("patch.bps")) {
+    if(!violateBPS) {
+      uint32_t sourceChecksum = Hash::CRC32(file::read(romPath())).value();
+      uint32_t expectedChecksum = 0;
+      for(uint i : range(4)) {
+        expectedChecksum |= patchContents[patchContents.size() - 12 + i] << (i << 3);
+      }
+      if(sourceChecksum != expectedChecksum) {
+        warning({
+          "The patch is not compatible with this ROM.\n",
+          "Expected CRC32: ", hex(expectedChecksum, 8L).upcase(), "\n\n",
+
+          "If you are attempting to multi-patch (which violates the BPS spec), ",
+          "check the Advanced Settings tab to do so."
+        });
+        return false;
+      }
+    }
+  }
 
   return true;
 }
@@ -151,15 +118,15 @@ auto Program::setDestination() -> void {
   switch(exportMethod) {
 
   case ExportMethod::GamePak: {
-    destination = {Location::dir(packPath.text()), outputName.text(), ".sfc/"};
+    destination = {Location::dir(packPath()), outputName(), ".sfc/"};
     break;
   }
 
   case ExportMethod::SD2SNES: {
-    if(exportManifest) {
-      destination = {Location::dir(packPath.text()), outputName.text(), ".sfc/"};
+    if(sd2snesForceManifest) {
+      destination = {Location::dir(packPath()), outputName(), ".sfc/"};
     } else {
-      destination = {Location::dir(packPath.text()), "SD2SNES-Snes9x/"};
+      destination = {Location::dir(packPath()), "SD2SNES-Snes9x/"};
     }
     break;
   }
@@ -174,42 +141,26 @@ auto Program::fetch(string_view name) -> maybe<Decode::ZIP::File> {
   return nothing;
 }
 
-auto Program::fetch(unique_pointer<bpspatch>& patch) -> bool {
-  if(patch) patch.reset();
-  if(auto file = fetch("patch.bps")) {
-    patch = new bpspatch;
-    patchContents = pack.extract(file());
-    patch->modify(patchContents.data(), patchContents.size());
-    return true;
-  }
-  return false;
-}
-
 auto Program::setProgress(uint files) -> void {
   progressBar.setPosition(files * 100 / pack.file.size());
 }
 
 auto Program::setEnabled(bool enabled) -> void {
-  packPath.setEnabled(enabled);
-  packChange.setEnabled(enabled);
-  romPath.setEnabled(enabled);
-  romChange.setEnabled(enabled);
-  outputName.setEnabled(enabled);
-  gamepakExport.setEnabled(enabled);
-  gamepakCreateManifest.setEnabled(enabled && gamepakExport.checked() && (icarus || daedalus));
-  sd2snesExport.setEnabled(enabled);
-  sd2snesForceManifest.setEnabled(enabled && sd2snesExport.checked() && (icarus && daedalus));
+  basicTab.setEnabled(enabled);
+  advancedTab.setEnabled(enabled);
+
   exportButton.setEnabled(enabled && validatePack());
   exitButton.setText(enabled ? "Exit" : "Cancel");
 }
 
 auto Program::reset() -> void {
-  if(patch) patch.reset();
   pack.close();
   pack = {};
-  packPath.setText("");
-  romPath.setText("");
-  outputName.setText("");
+
+  basicTab.packPath.setText("");
+  basicTab.romPath.setText("");
+  basicTab.outputName.setText("");
+
   trackIDs.reset();
   progressBar.setPosition(0);
   setEnabled(true);
@@ -217,6 +168,10 @@ auto Program::reset() -> void {
 
 auto Program::information(const string& text) -> void {
   statusLabel.setText(text);
+}
+
+auto Program::warning(const string& text) -> void {
+  MessageDialog().setTitle("Mercurial Magic").setText(text).warning();
 }
 
 auto Program::warning(const string& text, const string_vector& buttons) -> string {

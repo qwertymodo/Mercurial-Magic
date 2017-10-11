@@ -7,7 +7,7 @@ flags += -I. -I..
 link +=
 
 ifeq ($(platform),windows)
-  link += -mwindows
+  link += $(if $(call streq,$(console),true),-mconsole,-mwindows)
 endif
 
 objects := obj/hiro.o
